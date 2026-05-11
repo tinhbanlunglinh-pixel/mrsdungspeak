@@ -141,33 +141,50 @@ const FlashcardMode: React.FC<{ vocabulary: VocabularyItem[] }> = ({ vocabulary 
       </div>
 
       {/* Card */}
-      <div
-        onClick={() => setIsFlipped(!isFlipped)}
-        className="relative w-full min-h-[180px] sm:min-h-[200px] cursor-pointer perspective-1000"
-      >
-        <motion.div
-          animate={{ rotateY: isFlipped ? 180 : 0 }}
-          transition={{ duration: 0.4, type: 'spring', stiffness: 260, damping: 20 }}
-          className="w-full h-full"
-          style={{ transformStyle: 'preserve-3d' }}
+      <div className="flex justify-center">
+        <div
+          onClick={() => setIsFlipped(!isFlipped)}
+          className="relative w-full max-w-[260px] sm:max-w-[300px] aspect-[3/4] cursor-pointer perspective-1000"
         >
-          {/* Front */}
-          <div className={`absolute inset-0 bg-white rounded-2xl border-2 border-indigo-200 shadow-xl p-6 flex flex-col items-center justify-center text-center ${isFlipped ? 'invisible' : ''}`}
-            style={{ backfaceVisibility: 'hidden' }}
+          <motion.div
+            animate={{ rotateY: isFlipped ? 180 : 0 }}
+            transition={{ duration: 0.4, type: 'spring', stiffness: 260, damping: 20 }}
+            className="w-full h-full"
+            style={{ transformStyle: 'preserve-3d' }}
           >
-            <p className="text-2xl sm:text-3xl font-black text-indigo-900 mb-2">{current.word}</p>
-            <p className="text-base font-bold font-serif text-indigo-400">{current.ipa}</p>
-            <p className="text-[10px] text-slate-300 font-bold mt-4 uppercase tracking-widest">Nhấn để lật xem nghĩa</p>
-          </div>
+            {/* Front */}
+            <div className={`absolute inset-0 bg-white rounded-3xl border-[6px] border-indigo-50 shadow-xl p-6 flex flex-col items-center justify-center text-center ${isFlipped ? 'invisible' : ''}`}
+              style={{ backfaceVisibility: 'hidden' }}
+            >
+              {current.emoji ? (
+                <div className="text-6xl sm:text-7xl mb-6 drop-shadow-md">{current.emoji}</div>
+              ) : (
+                <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mb-6">
+                  <BookOpen size={36} className="text-indigo-300" />
+                </div>
+              )}
+              <p className="text-3xl sm:text-4xl font-black text-indigo-900 mb-3 leading-tight">{current.word}</p>
+              <p className="text-lg font-bold font-serif text-indigo-500 bg-indigo-50 px-4 py-1.5 rounded-xl">{current.ipa}</p>
+              
+              <div className="absolute bottom-6 w-full px-6 left-0">
+                <p className="text-[10px] text-slate-300 font-bold uppercase tracking-widest border-t border-slate-100 pt-3">Nhấn để lật xem nghĩa</p>
+              </div>
+            </div>
 
-          {/* Back */}
-          <div className={`absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl shadow-xl p-6 flex flex-col items-center justify-center text-center text-white ${!isFlipped ? 'invisible' : ''}`}
-            style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-          >
-            <p className="text-sm font-bold uppercase tracking-wider text-indigo-200 mb-2">{current.word}</p>
-            <p className="text-xl sm:text-2xl font-black leading-relaxed">{current.meaning}</p>
-          </div>
-        </motion.div>
+            {/* Back */}
+            <div className={`absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl border-[6px] border-indigo-400 shadow-xl p-6 flex flex-col items-center justify-center text-center text-white ${!isFlipped ? 'invisible' : ''}`}
+              style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+            >
+              {current.emoji && <div className="text-4xl sm:text-5xl mb-4 opacity-90 drop-shadow-md">{current.emoji}</div>}
+              <p className="text-sm font-bold uppercase tracking-widest text-indigo-200 mb-3 opacity-80">{current.word}</p>
+              <p className="text-2xl sm:text-3xl font-black leading-snug">{current.meaning}</p>
+              
+              <div className="absolute bottom-6 w-full px-6 left-0">
+                <p className="text-[10px] text-indigo-300 font-bold uppercase tracking-widest border-t border-indigo-400/50 pt-3">Nhấn để lật lại</p>
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Actions */}

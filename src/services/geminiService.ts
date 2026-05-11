@@ -33,6 +33,7 @@ export interface VocabularyItem {
   word: string;
   ipa: string;
   meaning: string;
+  emoji?: string;
 }
 
 export interface ContentGenerationResult {
@@ -122,7 +123,7 @@ export const generateContent = async (
   const systemInstruction = `You are an expert educational content creator for English learners, strictly following the CEFR (Common European Framework of Reference for Languages) and Cambridge English Qualifications standards (Starters, Movers, Flyers, KET, PET).
   
   Your task is to generate:
-  1. An image generation prompt for a children's book illustration (3D Pixar style, high-quality 2D vector, extremely vibrant, bright saturated colors, clean sharp lines, high contrast, cinematic lighting, 8k resolution style, very clear and detailed).
+  1. An image generation prompt for a highly realistic, crystal clear, and engaging educational illustration. Use keywords like: "photorealistic, highly detailed, perfect anatomy, sharp focus, 8k resolution, National Geographic photography style, no distortion, anatomically correct, full body in frame". Avoid abstract, blurry, or distorted styles.
   2. A reading passage in English appropriate for the level: ${level}. 
      ${mode === 'useInput' 
        ? "CRITICAL: If the user provided text, you MUST use the EXACT wording from the source for the 'readingText'. Your priority is to preserve the complete content while identifying and removing non-educational 'noise' such as ISBNs, publisher names, page numbers, and copyright footers that would disrupt the student's reading experience. DO NOT summarize, simplify, or shorten the passage. If the input is from an image, perform high-accuracy OCR to extract the English text verbatim." 
@@ -151,11 +152,12 @@ export const generateContent = async (
   - "readingText": string (English)
   - "topicName": string (English)
   - "translation": string (Vietnamese)
-  - "vocabulary": array of objects { "word": string, "ipa": string, "meaning": string }
+  - "vocabulary": array of objects { "word": string, "ipa": string, "meaning": string, "emoji": string }
   
   The "prompt" should be in English, describing a visual scene that complements the text.
   The "readingText" should be the educational passage (either generated or extracted/provided).
-  The "topicName" MUST be a short (max 5 words) catchy title for the lesson. If the user's input was a long text, extract/create a title for it.`;
+  The "topicName" MUST be a short (max 5 words) catchy title for the lesson. If the user's input was a long text, extract/create a title for it.
+  For the "emoji" field in vocabulary, provide a single relevant emoji that perfectly illustrates the word.`;
 
   const parts: any[] = [{ text: `Topic/Content: ${input}\nLevel: ${level}\nMode: ${mode}` }];
   if (imageData) {
@@ -204,7 +206,16 @@ export const generateImage = async (
   const width = 1024;
   const height = Math.round(width * (heightRatio / widthRatio));
   
-  return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux`;
+  const url = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
+  
+  try {
+    const res = await fetch(url);
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch (e) {
+    console.warn("Failed to fetch image as blob, returning raw url", e);
+    return url;
+  }
 };
 
 function pcmToWav(base64Pcm: string, sampleRate: number = 24000): string {
@@ -276,18 +287,20 @@ Output ONLY the audio data. Do NOT provide any text response, translations, or e
   let lastError = null;
   // 'Puck' is a youthful/child-like voice.
   const voices = ['Puck', 'Kore', 'Zephyr', 'Fenrir']; 
+  const AUDIO_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-exp"];
   
   for (let i = 0; i < 3; i++) {
     try {
       const currentVoice = voices[i % voices.length];
+      const modelToUse = AUDIO_MODELS[i % AUDIO_MODELS.length];
       let response;
       try {
         response = await getAI().models.generateContent({
-          model: AUDIO_MODEL,
+          model: modelToUse,
           contents: [{ role: "user", parts: [{ text: `TEXT TO READ: ${cleanedText}` }] }],
           config: {
             systemInstruction,
-            responseModalities: [Modality.AUDIO],
+            responseModalities: ["AUDIO"],
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: { voiceName: currentVoice as any },
