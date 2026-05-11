@@ -194,18 +194,57 @@ export default function App() {
   const downloadPoster = useCallback(async () => {
     if (!posterRef.current || isDownloading) return;
     setIsDownloading(true);
+    
+    const images = posterRef.current.querySelectorAll('img');
+    const originalSrcs = new Map<HTMLImageElement, string>();
+
     try {
-      const images = posterRef.current.querySelectorAll('img');
-      const loadPromises = Array.from(images).map(img => {
+      // 1. Convert all images to base64 to prevent canvas tainting on Vercel
+      const loadPromises = Array.from(images).map(async (img) => {
         const image = img as HTMLImageElement;
+        const originalSrc = image.src;
+        
+        if (!originalSrc.startsWith('data:')) {
+          originalSrcs.set(image, originalSrc);
+          try {
+            // Attempt to fetch the image and convert to base64
+            // We use a proxy as a fallback if the direct fetch fails due to CORS
+            let blob: Blob;
+            try {
+              const res = await fetch(originalSrc);
+              if (!res.ok) throw new Error("Direct fetch failed");
+              blob = await res.blob();
+            } catch (e) {
+              const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalSrc)}`;
+              const res = await fetch(proxyUrl);
+              blob = await res.blob();
+            }
+
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => resolve(reader.result as string);
+              reader.onerror = reject;
+              reader.readAsDataURL(blob);
+            });
+            image.src = base64;
+          } catch (e) {
+            console.warn("Failed to convert image to base64", e);
+            // Ignore error, html2canvas will just try to use the original src
+          }
+        }
+
         if (image.complete) return Promise.resolve();
         return new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
       });
+
       await Promise.all(loadPromises);
       await new Promise(resolve => setTimeout(resolve, 500));
 
+      // 2. Generate the canvas
       const canvas = await html2canvas(posterRef.current, {
-        useCORS: true, allowTaint: true, scale: 2,
+        useCORS: true, 
+        allowTaint: false, // Critical: prevent taint to avoid SecurityError on toDataURL
+        scale: 2,
         backgroundColor: '#ffffff', logging: true, imageTimeout: 15000, removeContainer: true,
         onclone: (clonedDoc) => {
           const container = clonedDoc.querySelector('[data-poster-container]') as HTMLElement;
@@ -219,6 +258,7 @@ export default function App() {
         ignoreElements: (element) => element.hasAttribute('data-html2canvas-ignore'),
       });
 
+      // 3. Download
       const dataUrl = canvas.toDataURL('image/png', 1.0);
       const link = document.createElement('a');
       link.style.display = 'none'; link.href = dataUrl;
@@ -228,12 +268,16 @@ export default function App() {
     } catch (err: any) {
       console.error("Critical: Failed to download poster", err);
       const msg = err?.message || "";
-      if (msg.includes("tainted") || msg.includes("CORS")) {
+      if (msg.includes("tainted") || msg.includes("CORS") || msg.includes("insecure") || msg.includes("toDataURL")) {
         setError("Lỗi bản quyền hình ảnh (CORS). Vui lòng thử lại hoặc chụp màn hình kết quả.");
       } else {
         setError("Không thể tải poster tự động. Bạn vui lòng chụp màn hình hoặc thử lại nhé.");
       }
     } finally {
+      // 4. Restore original image sources
+      originalSrcs.forEach((src, img) => {
+        img.src = src;
+      });
       setIsDownloading(false);
     }
   }, [isDownloading]);
