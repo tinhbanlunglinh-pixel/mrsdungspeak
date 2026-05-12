@@ -125,21 +125,38 @@ export const generateContent = async (
   userName?: string,
   userAge?: string
 ): Promise<ContentGenerationResult> => {
+  const useInputInstructions = mode === 'useInput' 
+    ? `
+  ⚠️ ABSOLUTE RULE FOR 'useInput' MODE — THIS OVERRIDES ALL OTHER RULES:
+  - You MUST copy the user's input text EXACTLY into "readingText", word for word, preserving 100% of the original content.
+  - DO NOT summarize, simplify, shorten, paraphrase, or rewrite ANY part of the text.
+  - DO NOT apply the Cambridge Level word count limits below. The word count limits ONLY apply when mode is 'generate'.
+  - The ONLY modifications allowed: remove ISBNs, publisher names, page numbers, copyright footers — pure noise that is not educational content.
+  - If the input is from an image, perform high-accuracy OCR to extract ALL English text verbatim.
+  - The "readingText" output MUST contain every sentence, every paragraph from the user's input. Missing even one sentence is UNACCEPTABLE.
+  - The "translation" must be a Vietnamese translation of the COMPLETE readingText, not a summary.
+  ` 
+    : '';
+
+  const generateModeInstructions = mode !== 'useInput'
+    ? "The content MUST be professional, educational, and follow Cambridge curriculum styles. Use clear, descriptive, and engaging language with a tone that sounds like a native English-speaking child or a friendly teacher speaking to a child. The passage should be about the topic and the image. The text MUST be written as a cohesive reading passage or story in standard paragraph format. DO NOT use line breaks after every sentence or format it as a poem/chant unless explicitly requested."
+    : '';
+
   const systemInstruction = `You are an expert educational content creator for English learners, strictly following the CEFR (Common European Framework of Reference for Languages) and Cambridge English Qualifications standards (Starters, Movers, Flyers, KET, PET).
-  
+  ${useInputInstructions}
   Your task is to generate:
-  1. An image generation prompt for a highly realistic, crystal clear, and engaging educational illustration. Use keywords like: "photorealistic, highly detailed, perfect anatomy, sharp focus, 8k resolution, National Geographic photography style, no distortion, anatomically correct, full body in frame". Avoid abstract, blurry, or distorted styles.
-  2. A reading passage in English appropriate for the level: ${level}. 
+  1. An image generation prompt for a highly realistic, crystal clear, and engaging educational illustration. The prompt MUST include quality keywords such as: "photorealistic, highly detailed, perfect anatomy, sharp focus, 8k UHD resolution, National Geographic photography style, professional lighting, vivid colors, no distortion, anatomically correct, full body in frame, DSLR quality". Avoid abstract, blurry, cartoon, or distorted styles.
+  2. A reading passage in English appropriate for the level: ${level}.
      ${mode === 'useInput' 
-       ? "CRITICAL: If the user provided text, you MUST use the EXACT wording from the source for the 'readingText'. Your priority is to preserve the complete content while identifying and removing non-educational 'noise' such as ISBNs, publisher names, page numbers, and copyright footers that would disrupt the student's reading experience. DO NOT summarize, simplify, or shorten the passage. If the input is from an image, perform high-accuracy OCR to extract the English text verbatim." 
-       : "The content MUST be professional, educational, and follow Cambridge curriculum styles. Use clear, descriptive, and engaging language with a tone that sounds like a native English-speaking child or a friendly teacher speaking to a child. The passage should be about the topic and the image. The text MUST be written as a cohesive reading passage or story in standard paragraph format. DO NOT use line breaks after every sentence or format it as a poem/chant unless explicitly requested."
+       ? "USE THE EXACT TEXT FROM THE USER'S INPUT — see the ABSOLUTE RULE above. Do NOT modify, shorten, or summarize it."
+       : generateModeInstructions
      }
   3. A short, catchy, and exciting title/topic name for this lesson (max 5 words). EVEN IN 'useInput' MODE, you must create a concise title based on the content if the input was long text.
-  4. A Vietnamese translation of the reading passage.
+  4. A Vietnamese translation of the reading passage. ${mode === 'useInput' ? 'Translate the COMPLETE text, not a summary.' : ''}
   5. A list of 3-5 key vocabulary words from the text with their IPA pronunciation and Vietnamese meaning.
   CRITICAL: Each vocabulary item MUST be extracted fully. DO NOT abbreviate or truncate words or meanings even for long definitions.
   
-  Cambridge Level Specifics:
+  Cambridge Level Specifics (ONLY for 'generate' mode, IGNORE these word limits for 'useInput' mode):
   - Starters (Pre-A1): Focus on nouns, colors, numbers, and simple actions. 20-40 words.
   - Movers (A1): Simple present, present continuous, basic descriptions. 40-60 words.
   - Flyers (A2): Past simple, future with 'going to', comparisons. 60-80 words.
@@ -153,13 +170,13 @@ export const generateContent = async (
   If the name and age are provided, you can optionally incorporate them into the reading passage if it makes sense.
   
   Output the result in JSON format with these keys: "prompt", "readingText", "topicName", "translation", "vocabulary".
-  - "prompt": string (English)
-  - "readingText": string (English)
+  - "prompt": string (English) — Must be a detailed, vivid scene description with photography quality keywords.
+  - "readingText": string (English) ${mode === 'useInput' ? '— MUST be the EXACT input text, unmodified and complete.' : ''}
   - "topicName": string (English)
-  - "translation": string (Vietnamese)
+  - "translation": string (Vietnamese) ${mode === 'useInput' ? '— MUST translate the complete text.' : ''}
   - "vocabulary": array of objects { "word": string, "ipa": string, "meaning": string, "emoji": string }
   
-  The "prompt" should be in English, describing a visual scene that complements the text.
+  The "prompt" should be in English, describing a visual scene that complements the text. Include photography quality terms.
   The "readingText" should be the educational passage (either generated or extracted/provided).
   The "topicName" MUST be a short (max 5 words) catchy title for the lesson. If the user's input was a long text, extract/create a title for it.
   For the "emoji" field in vocabulary, provide a single relevant emoji that perfectly illustrates the word.`;
@@ -205,10 +222,17 @@ export const generateImage = async (
   prompt: string,
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
-  // Use Pollinations.ai as a high-quality reliable placeholder for image generation
-  const cleanPrompt = encodeURIComponent(prompt.replace(/[^\w\s]/gi, '').substring(0, 300));
+  // Quality keywords to append for sharper, more realistic images
+  const qualitySuffix = ', photorealistic, ultra sharp focus, 8k UHD, DSLR quality, professional photography, vivid colors, high detail';
+  
+  // Preserve punctuation that helps prompt quality (commas, periods matter for prompt structure)
+  // Only remove truly problematic characters for URLs
+  const fullPrompt = (prompt + qualitySuffix).substring(0, 500);
+  const cleanPrompt = encodeURIComponent(fullPrompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, ''));
+  
   const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-  const width = 1024;
+  // Use higher base resolution for sharper images
+  const width = 1536;
   const height = Math.round(width * (heightRatio / widthRatio));
   
   const url = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
