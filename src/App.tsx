@@ -115,7 +115,7 @@ export default function App() {
           console.error("Background audio generation failed", err);
           const msg = err?.message || "";
           if (msg === "QUOTA_EXCEEDED" || msg === "INVALID_KEY") throw err;
-          setError("Không thể tạo âm thanh bài đọc. Bạn vẫn có thể luyện nói bình thường.");
+          // No error shown — audio will silently fall back to browser TTS on demand
           return null;
         }) : Promise.resolve(null)
       ]);
@@ -445,6 +445,7 @@ export default function App() {
                         showTranslation={showTranslation}
                         audioUrl={audioPlayer.audioUrl} audioRef={audioPlayer.audioRef}
                         isPlaying={audioPlayer.isPlaying} isAudioLoading={audioPlayer.isAudioLoading}
+                        isBrowserTTS={audioPlayer.isBrowserTTS}
                         setIsPlaying={audioPlayer.setIsPlaying} handlePlayAudio={audioPlayer.handlePlayAudio}
                         isDownloading={isDownloading}
                         onDownloadPoster={downloadPoster} onDownloadImage={handleDownloadImage}

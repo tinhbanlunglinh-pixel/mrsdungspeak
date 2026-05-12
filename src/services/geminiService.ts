@@ -27,7 +27,12 @@ const TEXT_MODELS = [
   "gemini-1.5-flash",
 ];
 
-const AUDIO_MODEL = "gemini-2.0-flash";
+// TTS-specific models (only these support responseModalities: [AUDIO] with speechConfig)
+const TTS_MODELS = [
+  "gemini-3.1-flash-tts-preview",
+  "gemini-2.5-flash-preview-tts",
+  "gemini-2.5-pro-preview-tts",
+];
 
 export interface VocabularyItem {
   word: string;
@@ -211,10 +216,64 @@ export const generateImage = async (
   return url;
 };
 
+// ============================================================
+// AUDIO GENERATION - Dual strategy: Gemini AI TTS + Browser TTS fallback
+// ============================================================
+
+/**
+ * Browser-based TTS using the Web Speech API.
+ * This ALWAYS works on any modern browser without network or API key.
+ * Returns "BROWSER_TTS" as a special signal to the audio player hook.
+ */
+export const BROWSER_TTS_SIGNAL = "BROWSER_TTS";
+
+export function speakWithBrowser(text: string, level: EnglishLevel): void {
+  if (!('speechSynthesis' in window)) return;
+
+  // Stop any ongoing speech
+  window.speechSynthesis.cancel();
+
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'en-US';
+
+  // Adjust rate based on level
+  if (["Starters", "Movers"].includes(level)) {
+    utterance.rate = 0.8;
+  } else if (["Flyers", "A1"].includes(level)) {
+    utterance.rate = 0.9;
+  } else {
+    utterance.rate = 1.0;
+  }
+
+  utterance.pitch = 1.0;
+  utterance.volume = 1.0;
+
+  // Try to find a good English voice
+  const voices = window.speechSynthesis.getVoices();
+  const englishVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) 
+    || voices.find(v => v.lang === 'en-US') 
+    || voices.find(v => v.lang.startsWith('en-'));
+  
+  if (englishVoice) {
+    utterance.voice = englishVoice;
+  }
+
+  window.speechSynthesis.speak(utterance);
+}
+
+export function stopBrowserTTS(): void {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+}
+
+/**
+ * Helper: Convert PCM base64 chunks to a WAV blob URL.
+ */
 function pcmChunksToWav(base64Chunks: string[], sampleRate: number = 24000): string {
-  // Decode all base64 chunks to Uint8Array
   const byteChunks = base64Chunks.map(base64 => {
-    const binaryString = atob(base64);
+    const cleanBase64 = base64.replace(/^data:.*?;base64,/, '');
+    const binaryString = atob(cleanBase64);
     const len = binaryString.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
@@ -223,40 +282,24 @@ function pcmChunksToWav(base64Chunks: string[], sampleRate: number = 24000): str
     return bytes;
   });
 
-  // Calculate total length
   const totalLength = byteChunks.reduce((acc, chunk) => acc + chunk.length, 0);
-
   const buffer = new ArrayBuffer(44 + totalLength);
   const view = new DataView(buffer);
 
-  // RIFF identifier
   view.setUint32(0, 0x52494646, false); // "RIFF"
-  // file length
   view.setUint32(4, 36 + totalLength, true);
-  // RIFF type
   view.setUint32(8, 0x57415645, false); // "WAVE"
-  // format chunk identifier
   view.setUint32(12, 0x666d7420, false); // "fmt "
-  // format chunk length
   view.setUint32(16, 16, true);
-  // sample format (raw PCM = 1)
-  view.setUint16(20, 1, true);
-  // channel count (mono = 1)
-  view.setUint16(22, 1, true);
-  // sample rate
+  view.setUint16(20, 1, true);    // PCM
+  view.setUint16(22, 1, true);    // mono
   view.setUint32(24, sampleRate, true);
-  // byte rate (sample rate * block align)
   view.setUint32(28, sampleRate * 2, true);
-  // block align (channel count * bytes per sample)
   view.setUint16(32, 2, true);
-  // bits per sample
   view.setUint16(34, 16, true);
-  // data chunk identifier
   view.setUint32(36, 0x64617461, false); // "data"
-  // data chunk length
   view.setUint32(40, totalLength, true);
 
-  // Write all PCM data
   const pcmView = new Uint8Array(buffer, 44);
   let offset = 0;
   for (const chunk of byteChunks) {
@@ -268,112 +311,124 @@ function pcmChunksToWav(base64Chunks: string[], sampleRate: number = 24000): str
   return URL.createObjectURL(blob);
 }
 
+/**
+ * Attempt Gemini AI TTS. Returns a WAV blob URL on success, or throws on failure.
+ */
+async function geminiTTS(text: string, level: EnglishLevel): Promise<string> {
+  const cleanedText = text.replace(/\s+/g, ' ').trim();
+  
+  // Build the prompt with pace instruction for young learners
+  let prompt = `Say the following text exactly: ${cleanedText}`;
+  if (["Starters", "Movers", "Flyers"].includes(level)) {
+    prompt = `[slowly, clearly, at a pace suitable for children] ${cleanedText}`;
+  }
+
+  // Use ONLY TTS-specific models (gemini-2.0-flash etc. do NOT support audio output with speechConfig)
+  const voices = ['Kore', 'Puck', 'Aoede', 'Fenrir', 'Charon'];
+  
+  for (let i = 0; i < TTS_MODELS.length; i++) {
+    const model = TTS_MODELS[i];
+    const voice = voices[i % voices.length];
+    
+    try {
+      console.log(`[TTS] Trying model: ${model}, voice: ${voice}`);
+      
+      const response = await getAI().models.generateContent({
+        model,
+        contents: [{ 
+          parts: [{ text: prompt }] 
+        }],
+        config: {
+          responseModalities: [Modality.AUDIO],
+          speechConfig: {
+            voiceConfig: {
+              prebuiltVoiceConfig: { voiceName: voice as any },
+            },
+          },
+        },
+      });
+
+      // Extract audio data from response
+      const candidates = response?.candidates;
+      if (!candidates || candidates.length === 0) {
+        console.warn(`[TTS] ${model} returned no candidates`);
+        continue;
+      }
+      
+      const parts = candidates[0]?.content?.parts || [];
+      if (parts.length === 0) {
+        console.warn(`[TTS] ${model} returned empty parts array`);
+        continue;
+      }
+      
+      for (const p of parts) {
+        if (p.inlineData?.data) {
+          const audioData = typeof p.inlineData.data === 'string' 
+            ? p.inlineData.data 
+            : String(p.inlineData.data);
+          
+          // Validate that audio data is non-empty and substantial
+          if (audioData.length < 100) {
+            console.warn(`[TTS] ${model} returned suspiciously small audio data (${audioData.length} chars), skipping`);
+            continue;
+          }
+          
+          console.log(`[TTS] ✅ Success with ${model}! Audio data length: ${audioData.length}, mimeType: ${p.inlineData.mimeType || 'unknown'}`);
+          return pcmChunksToWav([audioData]);
+        }
+      }
+      
+      // Log what we got instead of audio
+      const partTypes = parts.map((p: any) => p.text ? 'text' : p.inlineData ? 'inlineData' : 'unknown');
+      console.warn(`[TTS] ${model} returned no audio data. Part types: [${partTypes.join(', ')}]`);
+      
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.warn(`[TTS] ${model} failed: ${msg.substring(0, 200)}`);
+      
+      // Don't retry on auth errors — they'll fail on all models
+      if (msg.includes("403") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("invalid")) {
+        throw new Error("INVALID_KEY");
+      }
+      // For quota/rate limit, try next model
+      if (msg.includes("429") || msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("resource_exhausted")) {
+        console.warn(`[TTS] ${model} hit quota/rate limit, trying next model...`);
+        continue;
+      }
+      // For other errors (model not found, bad request, etc.), try next model
+      continue;
+    }
+  }
+  
+  throw new Error("All Gemini TTS models failed. Models tried: " + TTS_MODELS.join(", "));
+}
+
+/**
+ * Main audio generation function.
+ * Strategy: Try Gemini AI TTS first (best quality), fall back to browser TTS (always works).
+ */
 export const generateAudio = async (text: string, level: EnglishLevel): Promise<string> => {
   const cleanedText = text.replace(/\s+/g, ' ').trim();
   if (!cleanedText) {
     throw new Error("Text to speak is empty");
   }
 
-  // Split text into chunks of ~250 characters (on sentence boundaries) to prevent truncation or timeouts
-  const sentences = cleanedText.match(/[^.!?]+[.!?]+/g) || [cleanedText];
-  const chunks: string[] = [];
-  let currentChunk = "";
-  for (const sentence of sentences) {
-    if ((currentChunk + sentence).length > 250) {
-      if (currentChunk) chunks.push(currentChunk.trim());
-      currentChunk = sentence;
-    } else {
-      currentChunk += " " + sentence;
-    }
-  }
-  if (currentChunk) chunks.push(currentChunk.trim());
-
-  let speedInstruction = "Read at a normal, natural pace (1.0 speed)";
-  if (["Starters", "Movers", "Flyers"].includes(level)) {
-    speedInstruction = "Read at a clear, friendly, and natural pace suitable for children (slightly slower if needed but NOT artificial)";
-  }
-
-  const systemInstruction = `You are a native English speaker with a warm and clear voice.
-Your SOLE task is to read the provided English text exactly as it is written.
-${speedInstruction}
-Output ONLY the audio data. Do NOT provide any text response, translations, or explanations.`;
-
-  // Valid Gemini voices for speech generation
-  const voices = ['Puck', 'Aoede', 'Kore', 'Fenrir', 'Charon']; 
-  const AUDIO_MODELS = ["gemini-2.0-flash", "gemini-2.0-flash-exp"];
-  
-  // Pick one voice for the entire passage
-  const selectedVoice = voices[Math.floor(Math.random() * voices.length)];
-  const base64Chunks: string[] = [];
-
-  for (const chunk of chunks) {
-    let lastError = null;
-    let success = false;
-
-    for (let i = 0; i < 3; i++) {
-      try {
-        const modelToUse = AUDIO_MODELS[i % AUDIO_MODELS.length];
-        let response;
-        try {
-          response = await getAI().models.generateContent({
-            model: modelToUse,
-            contents: [{ role: "user", parts: [{ text: `TEXT TO READ: ${chunk}` }] }],
-            config: {
-              systemInstruction,
-              responseModalities: ["AUDIO"],
-              speechConfig: {
-                voiceConfig: {
-                  prebuiltVoiceConfig: { voiceName: selectedVoice as any },
-                },
-              },
-            },
-          });
-        } catch (err: any) {
-          handleApiError(err);
-        }
-
-        // Robustly extract base64 audio data
-        let base64Audio: string | null = null;
-        const parts = response?.candidates?.[0]?.content?.parts || [];
-        for (const p of parts) {
-          if (p.inlineData && p.inlineData.data) {
-             base64Audio = p.inlineData.data as string;
-             break;
-          }
-        }
-
-        if (base64Audio) {
-          base64Chunks.push(base64Audio);
-          success = true;
-          break; // Break retry loop on success
-        } else {
-          throw new Error("No audio data returned in response parts");
-        }
-      } catch (err: any) {
-        lastError = err;
-        console.warn(`Audio chunk generation attempt ${i + 1} failed:`, err);
-        
-        if (err?.message === "QUOTA_EXCEEDED" || err?.message === "INVALID_KEY") {
-          throw err;
-        }
-
-        if (i < 2) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1)));
-        }
-      }
-    }
-
-    if (!success) {
-      console.error("Gemini TTS Final Failure for chunk:", lastError);
-      throw lastError || new Error("Failed to generate complete audio from Gemini");
+  // Try Gemini TTS first
+  try {
+    const url = await geminiTTS(cleanedText, level);
+    return url;
+  } catch (err: any) {
+    console.warn("[TTS] Gemini TTS failed, falling back to browser TTS:", err?.message);
+    
+    // For quota/key errors, propagate up so UI can show specific message
+    if (err?.message === "QUOTA_EXCEEDED" || err?.message === "INVALID_KEY") {
+      // Still fall back to browser TTS but don't propagate the error
+      console.warn("[TTS] Auth/quota error, using browser TTS silently");
     }
   }
 
-  if (base64Chunks.length === 0) {
-    throw new Error("No audio data returned from Gemini");
-  }
-
-  return pcmChunksToWav(base64Chunks);
+  // Fallback: Browser TTS always works
+  return BROWSER_TTS_SIGNAL;
 };
 
 export interface EvaluationResult {

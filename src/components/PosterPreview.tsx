@@ -15,6 +15,7 @@ interface PosterPreviewProps {
   audioRef: React.RefObject<HTMLAudioElement | null>;
   isPlaying: boolean;
   isAudioLoading: boolean;
+  isBrowserTTS: boolean;
   setIsPlaying: (playing: boolean) => void;
   handlePlayAudio: () => Promise<void>;
   isDownloading: boolean;
@@ -29,7 +30,7 @@ const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5];
 export const PosterPreview: React.FC<PosterPreviewProps> = ({
   generatedImage, readingText, translationText, vocabulary,
   generatedTopicName, topic, level, showTranslation,
-  audioUrl, audioRef, isPlaying, isAudioLoading,
+  audioUrl, audioRef, isPlaying, isAudioLoading, isBrowserTTS,
   setIsPlaying, handlePlayAudio,
   isDownloading, onDownloadPoster, onDownloadImage, onToggleTranslation,
   posterRef
@@ -73,7 +74,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
           <div className="flex items-center gap-2" data-html2canvas-ignore>
             <button
               onClick={(e) => { e.stopPropagation(); handlePlayAudio(); }}
-              disabled={isAudioLoading && !audioUrl}
+              disabled={isAudioLoading && !audioUrl && !isBrowserTTS}
               className="p-2 rounded-full transition-all"
               style={{
                 backgroundColor: isPlaying ? '#ecfdf5' : isAudioLoading ? '#f3f4f6' : '#f9fafb',
@@ -81,7 +82,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
               }}
               title={isPlaying ? "Dừng" : "Nghe bài đọc"}
             >
-              {isAudioLoading && !audioUrl ? <RefreshCw size={18} className="animate-spin" /> : isPlaying ? <Pause size={18} /> : <Volume2 size={18} />}
+              {isAudioLoading && !audioUrl && !isBrowserTTS ? <RefreshCw size={18} className="animate-spin" /> : isPlaying ? <Pause size={18} /> : <Volume2 size={18} />}
             </button>
           </div>
         </div>
