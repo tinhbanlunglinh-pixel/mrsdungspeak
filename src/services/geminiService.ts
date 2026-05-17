@@ -61,7 +61,7 @@ function handleApiError(err: any): never {
   if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("resource_exhausted")) {
     throw new Error("QUOTA_EXCEEDED");
   }
-  if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.includes("invalid")) {
+  if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.toLowerCase().includes("permission denied")) {
     throw new Error("INVALID_KEY");
   }
   throw err;
@@ -94,7 +94,7 @@ async function generateWithFallback(
       const errorMsg = err?.message || String(err);
       
       // Don't fallback for auth errors — they'll fail on all models
-      if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.includes("invalid")) {
+      if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.toLowerCase().includes("permission denied")) {
         throw new Error("INVALID_KEY");
       }
       
@@ -196,6 +196,27 @@ export const generateContent = async (
     config: { 
       systemInstruction,
       responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          prompt: { type: Type.STRING },
+          readingText: { type: Type.STRING },
+          topicName: { type: Type.STRING },
+          translation: { type: Type.STRING },
+          vocabulary: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                word: { type: Type.STRING },
+                ipa: { type: Type.STRING },
+                meaning: { type: Type.STRING },
+                emoji: { type: Type.STRING }
+              }
+            }
+          }
+        }
+      }
     },
   });
 
@@ -204,10 +225,24 @@ export const generateContent = async (
   }
 
   try {
-    const result = JSON.parse(response.text);
+    // Clean the response text from markdown block wrappers if present
+    const cleanText = response.text
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+      
+    const result = JSON.parse(cleanText);
+    // AI đôi khi vẫn tự cắt ngắn văn bản, nên nếu là văn bản (không phải ảnh), 
+    // ta lấy trực tiếp input của user làm readingText.
+    let finalReadingText = result.readingText || "";
+    if (mode === "useInput" && !imageData && input) {
+      finalReadingText = input;
+    }
+
     return {
       prompt: result.prompt || "",
-      readingText: result.readingText || "",
+      readingText: finalReadingText,
       topicName: result.topicName || (input.length < 50 ? input : "English Lesson"),
       translation: result.translation || "",
       vocabulary: result.vocabulary || []
@@ -224,20 +259,36 @@ export const generateImage = async (
 ): Promise<string> => {
   // Quality keywords to append for sharper, more realistic images
   const qualitySuffix = ', photorealistic, ultra sharp focus, 8k UHD, DSLR quality, professional photography, vivid colors, high detail';
-  
-  // Preserve punctuation that helps prompt quality (commas, periods matter for prompt structure)
-  // Only remove truly problematic characters for URLs
   const fullPrompt = (prompt + qualitySuffix).substring(0, 500);
-  const cleanPrompt = encodeURIComponent(fullPrompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, ''));
-  
-  const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-  // Use higher base resolution for sharper images
-  const width = 1536;
-  const height = Math.round(width * (heightRatio / widthRatio));
-  
-  const url = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
-  
-  return url;
+
+  try {
+    // Sử dụng Imagen 3 (của Google) thay vì Pollinations
+    // Đây là model AI Studio dùng để tạo ảnh sắc nét
+    const response = await getAI().models.generateImages({
+      model: 'imagen-3.0-generate-002',
+      prompt: fullPrompt,
+      config: {
+        numberOfImages: 1,
+        aspectRatio: aspectRatio,
+        outputMimeType: 'image/jpeg',
+      },
+    });
+
+    const generatedImage = response?.generatedImages?.[0];
+    if (generatedImage?.image?.imageBytes) {
+      // Trả về data URI dạng base64 để hiển thị trực tiếp
+      return `data:image/jpeg;base64,${generatedImage.image.imageBytes}`;
+    }
+    throw new Error("Không nhận được dữ liệu ảnh từ Gemini.");
+  } catch (err: any) {
+    console.error("Gemini Imagen failed, falling back to Pollinations:", err);
+    // Nếu lỗi (do hết quota hoặc key không hỗ trợ imagen), fallback về Pollinations
+    const cleanPrompt = encodeURIComponent(fullPrompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, ''));
+    const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
+    const width = 1536;
+    const height = Math.round(width * (heightRatio / widthRatio));
+    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=false`;
+  }
 };
 
 // ============================================================
@@ -411,7 +462,7 @@ async function geminiTTS(text: string, level: EnglishLevel): Promise<string> {
       console.warn(`[TTS] ${model} failed: ${msg.substring(0, 200)}`);
       
       // Don't retry on auth errors — they'll fail on all models
-      if (msg.includes("403") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("invalid")) {
+      if (msg.includes("403") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("permission denied")) {
         throw new Error("INVALID_KEY");
       }
       // For quota/rate limit, try next model
@@ -559,7 +610,12 @@ Output định dạng JSON:
   });
 
   try {
-    const result = JSON.parse(response.text || "{}");
+    const cleanText = (response.text || "{}")
+      .replace(/^```json\s*/i, '')
+      .replace(/^```\s*/, '')
+      .replace(/\s*```$/i, '')
+      .trim();
+    const result = JSON.parse(cleanText);
     return {
       isComplete: result.isComplete ?? true,
       missingContent: result.missingContent || "",

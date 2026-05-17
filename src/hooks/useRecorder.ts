@@ -59,7 +59,7 @@ export function useRecorder(
             }
 
             if (!treatedAsQuota) {
-              setError(`Lỗi chấm điểm: ${errorMessage.substring(0, 100)}${errorMessage.length > 100 ? '...' : ''}. (Vui lòng thử lại)`);
+              setError(`Lỗi chấm điểm chi tiết: ${errorMessage}. (Vui lòng copy dòng này và gửi cho Assistant)`);
             }
           }
           setIsEvaluating(false);

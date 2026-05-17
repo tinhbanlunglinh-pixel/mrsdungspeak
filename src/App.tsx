@@ -162,7 +162,7 @@ export default function App() {
           }
         }
         if (!treatedAsQuota) {
-          setError(`Lỗi: ${errorMessage.substring(0, 100)}${errorMessage.length > 100 ? '...' : ''}. (Vui lòng thử lại hoặc kiểm tra kết nối mạng)`);
+          setError(`Lỗi chi tiết: ${errorMessage}. (Vui lòng copy dòng này và gửi cho Assistant)`);
         }
       }
       audioPlayer.setIsAudioLoading(false);
