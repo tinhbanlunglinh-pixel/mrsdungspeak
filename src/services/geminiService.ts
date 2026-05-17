@@ -152,7 +152,7 @@ export const generateContent = async (
   const systemInstruction = `You are an expert educational content creator for English learners, strictly following the CEFR (Common European Framework of Reference for Languages) and Cambridge English Qualifications standards (Starters, Movers, Flyers, KET, PET).
   ${useInputInstructions}
   Your task is to generate:
-  1. An image generation prompt for a highly realistic, crystal clear, and engaging educational illustration. The prompt MUST include quality keywords such as: "photorealistic, highly detailed, perfect anatomy, entire scene in sharp focus, 4k resolution, crystal clear, National Geographic photography style, professional lighting, vivid colors, no depth of field, anatomically correct, full body in frame, no blur". Avoid abstract, blurry, cartoon, or distorted styles.
+  1. An image generation prompt for a stunning educational illustration. Write the prompt as a NATURAL, DETAILED scene description — describe WHAT you want to see, not what to avoid. Example style: "A young girl standing in a lush green park, feeding a tall giraffe, golden afternoon sunlight, crisp details, photorealistic, shot on Canon EOS R5, 4k resolution". NEVER use negative prompts like "no blur", "no distortion" — Imagen 3 does not support them. Focus on: subject, environment, lighting, mood, camera angle, and the keyword "photorealistic, sharp focus, 4k".
   2. A reading passage in English appropriate for the level: ${level}.
      ${mode === 'useInput' 
        ? "USE THE EXACT TEXT FROM THE USER'S INPUT — see the ABSOLUTE RULE above. Do NOT modify, shorten, or summarize it."
@@ -247,39 +247,44 @@ export const generateImage = async (
   prompt: string,
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
-  // Quality keywords to append for sharper, more realistic images
-  const qualitySuffix = ', masterpiece, photorealistic, crystal clear, entire scene in ultra sharp focus, 4k resolution, no depth of field, clear background, perfect anatomy, perfectly formed faces, symmetrical eyes, no deformities, no extra limbs, no facial distortion, no blur, highly detailed';
+  // Imagen 3 hoạt động tốt nhất với mô tả tự nhiên, chi tiết, TÍCH CỰC.
+  // KHÔNG dùng negative prompt (no blur, no distortion...) vì Imagen 3 không xử lý tốt.
+  // Giữ prompt ngắn gọn, tập trung vào chất lượng mong muốn.
+  const qualitySuffix = ', photorealistic, highly detailed, sharp focus, professional lighting, vivid colors, 4k resolution';
   const fullPrompt = (prompt + qualitySuffix).substring(0, 800);
 
   try {
-    // Sử dụng Imagen 3 (của Google) thay vì Pollinations
-    // Đây là model AI Studio dùng để tạo ảnh sắc nét
+    // === CHIẾN LƯỢC 1: Google Imagen 3 (cùng engine với AI Studio) ===
+    // Dùng image/png (lossless) thay vì image/jpeg (lossy) để giữ nguyên chất lượng gốc.
+    // Đây chính xác là cách AI Studio render ảnh nét.
     const response = await getAI().models.generateImages({
       model: 'imagen-3.0-generate-002',
       prompt: fullPrompt,
       config: {
         numberOfImages: 1,
         aspectRatio: aspectRatio,
-        outputMimeType: 'image/jpeg',
+        outputMimeType: 'image/png',
       },
     });
 
     const generatedImage = response?.generatedImages?.[0];
     if (generatedImage?.image?.imageBytes) {
-      // Trả về data URI dạng base64 để hiển thị trực tiếp
-      return `data:image/jpeg;base64,${generatedImage.image.imageBytes}`;
+      // Trả về data URI dạng base64 PNG — lossless, không mất chi tiết
+      return `data:image/png;base64,${generatedImage.image.imageBytes}`;
     }
-    throw new Error("Không nhận được dữ liệu ảnh từ Gemini.");
+    throw new Error("Không nhận được dữ liệu ảnh từ Imagen 3.");
   } catch (err: any) {
-    console.error("Gemini Imagen failed, falling back to Pollinations:", err);
-    // Nếu lỗi (do hết quota hoặc key không hỗ trợ imagen), fallback về Pollinations
-    const cleanPrompt = encodeURIComponent(fullPrompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, ''));
+    console.error("Imagen 3 failed, falling back to Pollinations:", err);
+
+    // === CHIẾN LƯỢC 2: Pollinations AI (fallback khi Imagen 3 lỗi/hết quota) ===
+    const cleanPrompt = encodeURIComponent(
+      prompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, '')
+    );
     const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-    // Dùng độ phân giải 1024 thay vì 1920 để tránh model AI (như Flux) sinh lỗi cấu trúc cơ thể/khuôn mặt
     const width = 1024;
     const height = Math.round(width * (heightRatio / widthRatio));
-    // enhance=false giúp giữ nguyên prompt chi tiết chống lỗi của mình, tránh bị can thiệp làm hỏng ảnh
-    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=false`;
+    // enhance=true để Pollinations tự tối ưu prompt cho model Flux
+    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
   }
 };
 
