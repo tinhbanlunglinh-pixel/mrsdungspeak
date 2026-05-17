@@ -34,7 +34,7 @@ export default function App() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [contentMode, setContentMode] = useState<ContentMode>("generate");
-  const [voice, setVoice] = useState<TTSVoice>("Puck");
+  const [voice, setVoice] = useState<TTSVoice>("Kore");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -311,7 +311,7 @@ export default function App() {
                         <div className="w-20 h-20 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
                         <Sparkles className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-indigo-600" size={24} />
                       </div>
-                      <p className="text-gray-500 font-medium animate-pulse text-center px-4">Gemini đang vẽ và soạn bài đọc cho bạn...</p>
+                      <p className="text-gray-500 font-medium animate-pulse text-center px-4">Cô Dung đang phù phép cho con thành siêu nhân tiếng Anh đó, đợi cô 1 lát nhé!</p>
                     </motion.div>
                   ) : readingText ? (
                     <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full flex flex-col items-center gap-4">
@@ -325,7 +325,6 @@ export default function App() {
                         isPlaying={audioPlayer.isPlaying} isAudioLoading={audioPlayer.isAudioLoading}
                         isBrowserTTS={audioPlayer.isBrowserTTS}
                         setIsPlaying={audioPlayer.setIsPlaying} handlePlayAudio={audioPlayer.handlePlayAudio}
-                        voice={voice} setVoice={setVoice} regenerateAudio={audioPlayer.regenerateAudio}
                         isDownloading={isDownloading}
                         onToggleTranslation={() => setShowTranslation(!showTranslation)}
                         posterRef={posterRef}
