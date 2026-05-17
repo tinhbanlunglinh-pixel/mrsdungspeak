@@ -152,7 +152,7 @@ export const generateContent = async (
   const systemInstruction = `You are an expert educational content creator for English learners, strictly following the CEFR (Common European Framework of Reference for Languages) and Cambridge English Qualifications standards (Starters, Movers, Flyers, KET, PET).
   ${useInputInstructions}
   Your task is to generate:
-  1. An image generation prompt for a highly realistic, crystal clear, and engaging educational illustration. The prompt MUST include quality keywords such as: "photorealistic, highly detailed, perfect anatomy, sharp focus, 4k resolution, crystal clear, National Geographic photography style, professional lighting, vivid colors, no distortion, anatomically correct, full body in frame, DSLR quality". Avoid abstract, blurry, cartoon, or distorted styles.
+  1. An image generation prompt for a highly realistic, crystal clear, and engaging educational illustration. The prompt MUST include quality keywords such as: "photorealistic, highly detailed, perfect anatomy, entire scene in sharp focus, 4k resolution, crystal clear, National Geographic photography style, professional lighting, vivid colors, no depth of field, anatomically correct, full body in frame, no blur". Avoid abstract, blurry, cartoon, or distorted styles.
   2. A reading passage in English appropriate for the level: ${level}.
      ${mode === 'useInput' 
        ? "USE THE EXACT TEXT FROM THE USER'S INPUT — see the ABSOLUTE RULE above. Do NOT modify, shorten, or summarize it."
@@ -248,7 +248,7 @@ export const generateImage = async (
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
   // Quality keywords to append for sharper, more realistic images
-  const qualitySuffix = ', masterpiece, photorealistic, crystal clear, ultra sharp focus, 4k resolution, DSLR quality, perfect anatomy, perfectly formed faces, symmetrical eyes, no deformities, no facial distortion, no blur';
+  const qualitySuffix = ', masterpiece, photorealistic, crystal clear, entire scene in ultra sharp focus, 4k resolution, no depth of field, clear background, perfect anatomy, perfectly formed faces, symmetrical eyes, no deformities, no extra limbs, no facial distortion, no blur, highly detailed';
   const fullPrompt = (prompt + qualitySuffix).substring(0, 800);
 
   try {
