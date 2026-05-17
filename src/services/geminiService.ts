@@ -22,10 +22,10 @@ const getAI = () => {
 
 // Model fallback chain per AI_INSTRUCTIONS.md
 const TEXT_MODELS = [
-  "gemini-3.1-flash",
-  "gemini-3.0-flash",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
+  "gemini-1.5-flash",
+  "gemini-1.5-pro",
 ];
 
 // TTS-specific models (only these support responseModalities: [AUDIO] with speechConfig)
@@ -203,27 +203,6 @@ export const generateContent = async (
     config: { 
       systemInstruction,
       responseMimeType: "application/json",
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          prompt: { type: Type.STRING },
-          readingText: { type: Type.STRING },
-          topicName: { type: Type.STRING },
-          translation: { type: Type.STRING },
-          vocabulary: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                word: { type: Type.STRING },
-                ipa: { type: Type.STRING },
-                meaning: { type: Type.STRING },
-                emoji: { type: Type.STRING }
-              }
-            }
-          }
-        }
-      }
     },
   });
 
