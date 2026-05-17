@@ -5,8 +5,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
-import { generateContent, generateImage, generateAudio } from './services/geminiService';
-import { EnglishLevel, AspectRatio, ContentMode, VocabularyItem } from './types';
+import { generateContent, generateAudio } from './services/geminiService';
+import { EnglishLevel, ContentMode, VocabularyItem } from './types';
 
 // Components
 import { Header } from './components/Header';
@@ -33,13 +33,11 @@ export default function App() {
   const [apiKey, setApiKey] = useState(localStorage.getItem("GEMINI_API_KEY") || "");
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>("4:3");
   const [contentMode, setContentMode] = useState<ContentMode>("generate");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Generated content
-  const [generatedImage, setGeneratedImage] = useState<string | null>(null);
   const [generatedPrompt, setGeneratedPrompt] = useState<string | null>(null);
   const [readingText, setReadingText] = useState<string | null>(null);
   const [translationText, setTranslationText] = useState<string | null>(null);
@@ -89,7 +87,6 @@ export default function App() {
 
     setIsGenerating(true);
     setError(null);
-    setGeneratedImage(null);
     setReadingText(null);
 
     try {
@@ -107,20 +104,15 @@ export default function App() {
       audioPlayer.setAudioUrl(null);
       recorder.setEvaluation(null);
 
-      // 2. Generate image and audio in parallel
+      // 2. Generate audio
       audioPlayer.setIsAudioLoading(true);
-      const [imageUrl, audioUrl] = await Promise.all([
-        generateImage(prompt, aspectRatio),
-        text ? generateAudio(text, level).catch(err => {
-          console.error("Background audio generation failed", err);
-          const msg = err?.message || "";
-          if (msg === "QUOTA_EXCEEDED" || msg === "INVALID_KEY") throw err;
-          // No error shown — audio will silently fall back to browser TTS on demand
-          return null;
-        }) : Promise.resolve(null)
-      ]);
+      const audioUrl = await (text ? generateAudio(text, level).catch(err => {
+        console.error("Background audio generation failed", err);
+        const msg = err?.message || "";
+        if (msg === "QUOTA_EXCEEDED" || msg === "INVALID_KEY") throw err;
+        return null;
+      }) : Promise.resolve(null));
       
-      setGeneratedImage(imageUrl);
       if (audioUrl) audioPlayer.setAudioUrl(audioUrl);
       audioPlayer.setIsAudioLoading(false);
 
@@ -131,7 +123,7 @@ export default function App() {
         readingText: text,
         translationText: translation,
         vocabulary: vocab,
-        generatedImage: imageUrl,
+        generatedImage: null,
         generatedPrompt: prompt,
       });
       setCurrentLessonId(lessonId);
@@ -169,7 +161,7 @@ export default function App() {
     } finally {
       setIsGenerating(false);
     }
-  }, [topic, imagePreview, contentMode, level, aspectRatio, audioPlayer, recorder, lessonHistory]);
+  }, [topic, imagePreview, contentMode, level, audioPlayer, recorder, lessonHistory]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -177,7 +169,6 @@ export default function App() {
   }, [handleGenerate]);
 
   const handleLoadLesson = useCallback((lesson: LessonRecord) => {
-    setGeneratedImage(lesson.generatedImage);
     setReadingText(lesson.readingText);
     setTranslationText(lesson.translationText);
     setVocabulary(lesson.vocabulary || []);
@@ -282,14 +273,6 @@ export default function App() {
     }
   }, [isDownloading]);
 
-  const handleDownloadImage = useCallback(() => {
-    if (!generatedImage) return;
-    const link = document.createElement('a');
-    link.href = generatedImage;
-    link.download = `illustration-${Date.now()}.png`;
-    link.click();
-  }, [generatedImage]);
-
   return (
     <div className="min-h-screen bg-emerald-50/30 text-[#1A1A1A] font-sans selection:bg-brand-green/10 relative overflow-hidden">
       {/* Decorative Background Icons */}
@@ -367,7 +350,6 @@ export default function App() {
             level={level} setLevel={setLevel}
             contentMode={contentMode} setContentMode={setContentMode}
             imagePreview={imagePreview} setImagePreview={setImagePreview}
-            aspectRatio={aspectRatio} setAspectRatio={setAspectRatio}
             isGenerating={isGenerating}
             isProcessingFile={fileProcessor.isProcessingFile}
             isDragging={fileProcessor.isDragging}
@@ -399,12 +381,7 @@ export default function App() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  {generatedImage && (
-                    <button onClick={handleDownloadImage} className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition-colors shadow-sm">
-                      <ImageIcon size={14} /> Tải ảnh
-                    </button>
-                  )}
-                  {generatedImage && readingText && (
+                  {readingText && (
                     <button onClick={() => setShowTranslation(!showTranslation)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm
                         ${showTranslation ? 'bg-brand-green text-white' : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'}`}
@@ -412,7 +389,7 @@ export default function App() {
                       <Languages size={14} /> {showTranslation ? 'Ẩn dịch' : 'Hiện dịch'}
                     </button>
                   )}
-                  {generatedImage && readingText && (
+                  {readingText && (
                     <button onClick={downloadPoster} disabled={isDownloading}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all shadow-lg
                         ${isDownloading ? 'bg-emerald-400 cursor-not-allowed' : 'bg-brand-green hover:bg-emerald-700 shadow-emerald-100'}`}
@@ -435,11 +412,11 @@ export default function App() {
                       </div>
                       <p className="text-gray-500 font-medium animate-pulse text-center px-4">Gemini đang vẽ và soạn bài đọc cho bạn...</p>
                     </motion.div>
-                  ) : (generatedImage && readingText) ? (
+                  ) : readingText ? (
                     <motion.div key="result" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="w-full flex flex-col items-center gap-4">
                       {/* Poster */}
                       <PosterPreview
-                        generatedImage={generatedImage} readingText={readingText}
+                        readingText={readingText}
                         translationText={translationText} vocabulary={vocabulary}
                         generatedTopicName={generatedTopicName} topic={topic} level={level}
                         showTranslation={showTranslation}
@@ -448,7 +425,7 @@ export default function App() {
                         isBrowserTTS={audioPlayer.isBrowserTTS}
                         setIsPlaying={audioPlayer.setIsPlaying} handlePlayAudio={audioPlayer.handlePlayAudio}
                         isDownloading={isDownloading}
-                        onDownloadPoster={downloadPoster} onDownloadImage={handleDownloadImage}
+                        onDownloadPoster={downloadPoster}
                         onToggleTranslation={() => setShowTranslation(!showTranslation)}
                         posterRef={posterRef}
                       />
