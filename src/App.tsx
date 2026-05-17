@@ -6,7 +6,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import { generateContent, generateAudio } from './services/geminiService';
-import { EnglishLevel, ContentMode, VocabularyItem } from './types';
+import { EnglishLevel, ContentMode, VocabularyItem, TTSVoice } from './types';
 
 // Components
 import { Header } from './components/Header';
@@ -34,6 +34,7 @@ export default function App() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [contentMode, setContentMode] = useState<ContentMode>("generate");
+  const [voice, setVoice] = useState<TTSVoice>("Puck");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,7 +107,7 @@ export default function App() {
 
       // 2. Generate audio
       audioPlayer.setIsAudioLoading(true);
-      const audioUrl = await (text ? generateAudio(text, level).catch(err => {
+      const audioUrl = await (text ? generateAudio(text, level, voice).catch(err => {
         console.error("Background audio generation failed", err);
         const msg = err?.message || "";
         if (msg === "QUOTA_EXCEEDED" || msg === "INVALID_KEY") throw err;
@@ -161,7 +162,7 @@ export default function App() {
     } finally {
       setIsGenerating(false);
     }
-  }, [topic, imagePreview, contentMode, level, audioPlayer, recorder, lessonHistory]);
+  }, [topic, imagePreview, contentMode, level, voice, audioPlayer, recorder, lessonHistory]);
 
   const handleRetry = useCallback(() => {
     setError(null);
@@ -181,97 +182,6 @@ export default function App() {
     recorder.setEvaluation(null);
     setError(null);
   }, [audioPlayer, recorder]);
-
-  const downloadPoster = useCallback(async () => {
-    if (!posterRef.current || isDownloading) return;
-    setIsDownloading(true);
-    
-    const images = posterRef.current.querySelectorAll('img');
-    const originalSrcs = new Map<HTMLImageElement, string>();
-
-    try {
-      // 1. Convert all images to base64 to prevent canvas tainting on Vercel
-      const loadPromises = Array.from(images).map(async (img) => {
-        const image = img as HTMLImageElement;
-        const originalSrc = image.src;
-        
-        if (!originalSrc.startsWith('data:')) {
-          originalSrcs.set(image, originalSrc);
-          try {
-            // Attempt to fetch the image and convert to base64
-            // We use a proxy as a fallback if the direct fetch fails due to CORS
-            let blob: Blob;
-            try {
-              const res = await fetch(originalSrc);
-              if (!res.ok) throw new Error("Direct fetch failed");
-              blob = await res.blob();
-            } catch (e) {
-              const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(originalSrc)}`;
-              const res = await fetch(proxyUrl);
-              blob = await res.blob();
-            }
-
-            const base64 = await new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onloadend = () => resolve(reader.result as string);
-              reader.onerror = reject;
-              reader.readAsDataURL(blob);
-            });
-            image.src = base64;
-          } catch (e) {
-            console.warn("Failed to convert image to base64", e);
-            // Ignore error, html2canvas will just try to use the original src
-          }
-        }
-
-        if (image.complete) return Promise.resolve();
-        return new Promise((resolve, reject) => { image.onload = resolve; image.onerror = reject; });
-      });
-
-      await Promise.all(loadPromises);
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 2. Generate the canvas
-      const canvas = await html2canvas(posterRef.current, {
-        useCORS: true, 
-        allowTaint: false, // Critical: prevent taint to avoid SecurityError on toDataURL
-        scale: window.devicePixelRatio ? Math.max(3, window.devicePixelRatio * 2) : 3,
-        backgroundColor: '#ffffff', logging: true, imageTimeout: 15000, removeContainer: true,
-        onclone: (clonedDoc) => {
-          const container = clonedDoc.querySelector('[data-poster-container]') as HTMLElement;
-          if (container) { container.style.backgroundImage = 'none'; container.style.boxShadow = 'none'; container.style.transform = 'none'; container.style.transition = 'none'; }
-          const blurredElements = clonedDoc.querySelectorAll('.backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg');
-          blurredElements.forEach((el: any) => { el.style.backdropFilter = 'none'; el.style.background = 'rgba(255, 255, 255, 0.9)'; });
-          const style = clonedDoc.createElement('style');
-          style.innerHTML = `* { -webkit-print-color-adjust: exact !important; color-adjust: exact !important; print-color-adjust: exact !important; box-shadow: none !important; text-shadow: none !important; }`;
-          clonedDoc.head.appendChild(style);
-        },
-        ignoreElements: (element) => element.hasAttribute('data-html2canvas-ignore'),
-      });
-
-      // 3. Download
-      const dataUrl = canvas.toDataURL('image/png', 1.0);
-      const link = document.createElement('a');
-      link.style.display = 'none'; link.href = dataUrl;
-      link.download = `Mrs-Dung-Poster-${Date.now()}.png`;
-      document.body.appendChild(link); link.click();
-      setTimeout(() => { if (link.parentNode) document.body.removeChild(link); }, 500);
-    } catch (err: any) {
-      console.error("Critical: Failed to download poster", err);
-      const msg = err?.message || "";
-      if (msg.includes("tainted") || msg.includes("CORS") || msg.includes("insecure") || msg.includes("toDataURL")) {
-        setError("Lỗi bản quyền hình ảnh (CORS). Vui lòng thử lại hoặc chụp màn hình kết quả.");
-      } else {
-        setError("Không thể tải poster tự động. Bạn vui lòng chụp màn hình hoặc thử lại nhé.");
-      }
-    } finally {
-      // 4. Restore original image sources
-      originalSrcs.forEach((src, img) => {
-        img.src = src;
-      });
-      setIsDownloading(false);
-    }
-  }, [isDownloading]);
 
   return (
     <div className="min-h-screen bg-emerald-50/30 text-[#1A1A1A] font-sans selection:bg-brand-green/10 relative overflow-hidden">
@@ -349,6 +259,7 @@ export default function App() {
             topic={topic} setTopic={setTopic}
             level={level} setLevel={setLevel}
             contentMode={contentMode} setContentMode={setContentMode}
+            voice={voice} setVoice={setVoice}
             imagePreview={imagePreview} setImagePreview={setImagePreview}
             isGenerating={isGenerating}
             isProcessingFile={fileProcessor.isProcessingFile}
@@ -389,15 +300,6 @@ export default function App() {
                       <Languages size={14} /> {showTranslation ? 'Ẩn dịch' : 'Hiện dịch'}
                     </button>
                   )}
-                  {readingText && (
-                    <button onClick={downloadPoster} disabled={isDownloading}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold text-white transition-all shadow-lg
-                        ${isDownloading ? 'bg-emerald-400 cursor-not-allowed' : 'bg-brand-green hover:bg-emerald-700 shadow-emerald-100'}`}
-                    >
-                      {isDownloading ? <RefreshCw className="animate-spin" size={14} /> : <Download size={14} />}
-                      {isDownloading ? 'Đang xử lý...' : 'Tải Poster'}
-                    </button>
-                  )}
                 </div>
               </div>
               
@@ -425,7 +327,6 @@ export default function App() {
                         isBrowserTTS={audioPlayer.isBrowserTTS}
                         setIsPlaying={audioPlayer.setIsPlaying} handlePlayAudio={audioPlayer.handlePlayAudio}
                         isDownloading={isDownloading}
-                        onDownloadPoster={downloadPoster}
                         onToggleTranslation={() => setShowTranslation(!showTranslation)}
                         posterRef={posterRef}
                       />

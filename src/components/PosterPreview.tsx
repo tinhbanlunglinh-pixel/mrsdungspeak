@@ -17,8 +17,6 @@ interface PosterPreviewProps {
   isBrowserTTS: boolean;
   setIsPlaying: (playing: boolean) => void;
   handlePlayAudio: () => Promise<void>;
-  isDownloading: boolean;
-  onDownloadPoster: () => void;
   onToggleTranslation: () => void;
   posterRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -30,7 +28,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
   generatedTopicName, topic, level, showTranslation,
   audioUrl, audioRef, isPlaying, isAudioLoading, isBrowserTTS,
   setIsPlaying, handlePlayAudio,
-  isDownloading, onDownloadPoster, onToggleTranslation,
+  onToggleTranslation,
   posterRef
 }) => {
   return (

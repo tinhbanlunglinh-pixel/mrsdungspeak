@@ -405,7 +405,7 @@ function pcmChunksToWav(base64Chunks: string[], sampleRate: number = 24000): str
 /**
  * Attempt Gemini AI TTS. Returns a WAV blob URL on success, or throws on failure.
  */
-async function geminiTTS(text: string, level: EnglishLevel): Promise<string> {
+async function geminiTTS(text: string, level: EnglishLevel, voice: string = "Kore"): Promise<string> {
   const cleanedText = text.replace(/\s+/g, ' ').trim();
   
   // Build the prompt with pace instruction for young learners
@@ -415,11 +415,8 @@ async function geminiTTS(text: string, level: EnglishLevel): Promise<string> {
   }
 
   // Use ONLY TTS-specific models (gemini-2.0-flash etc. do NOT support audio output with speechConfig)
-  const voices = ['Kore', 'Puck', 'Aoede', 'Fenrir', 'Charon'];
-  
   for (let i = 0; i < TTS_MODELS.length; i++) {
     const model = TTS_MODELS[i];
-    const voice = voices[i % voices.length];
     
     try {
       console.log(`[TTS] Trying model: ${model}, voice: ${voice}`);
@@ -498,7 +495,7 @@ async function geminiTTS(text: string, level: EnglishLevel): Promise<string> {
  * Main audio generation function.
  * Strategy: Try Gemini AI TTS first (best quality), fall back to browser TTS (always works).
  */
-export const generateAudio = async (text: string, level: EnglishLevel): Promise<string> => {
+export const generateAudio = async (text: string, level: EnglishLevel, voice: string = "Kore"): Promise<string> => {
   const cleanedText = text.replace(/\s+/g, ' ').trim();
   if (!cleanedText) {
     throw new Error("Text to speak is empty");
@@ -506,7 +503,7 @@ export const generateAudio = async (text: string, level: EnglishLevel): Promise<
 
   // Try Gemini TTS first
   try {
-    const url = await geminiTTS(cleanedText, level);
+    const url = await geminiTTS(cleanedText, level, voice);
     return url;
   } catch (err: any) {
     console.warn("[TTS] Gemini TTS failed, falling back to browser TTS:", err?.message);

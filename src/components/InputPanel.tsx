@@ -1,9 +1,9 @@
 import React from 'react';
 import { 
   Type, Image as ImageIcon, FileText, Upload, RefreshCw, X, 
-  GraduationCap, Sparkles, AlertCircle 
+  GraduationCap, Sparkles, AlertCircle, Mic 
 } from 'lucide-react';
-import { EnglishLevel, ContentMode, AspectRatio } from '../types';
+import { EnglishLevel, ContentMode, TTSVoice } from '../types';
 
 interface InputPanelProps {
   topic: string;
@@ -12,6 +12,8 @@ interface InputPanelProps {
   setLevel: (level: EnglishLevel) => void;
   contentMode: ContentMode;
   setContentMode: (mode: ContentMode) => void;
+  voice: TTSVoice;
+  setVoice: (voice: TTSVoice) => void;
   imagePreview: string | null;
   setImagePreview: (preview: string | null) => void;
   isGenerating: boolean;
@@ -32,11 +34,16 @@ interface InputPanelProps {
 }
 
 const LEVELS: EnglishLevel[] = ["Starters", "Movers", "Flyers", "A1", "A2", "B1", "B2"];
+const VOICES: { label: string; value: TTSVoice }[] = [
+  { label: "👦 Trẻ em (Puck)", value: "Puck" },
+  { label: "👩 Nữ (Kore)", value: "Kore" },
+  { label: "👨 Nam (Charon)", value: "Charon" },
+];
 
 export const InputPanel: React.FC<InputPanelProps> = (props) => {
   const {
     topic, setTopic, level, setLevel, contentMode,
-    imagePreview, setImagePreview,
+    voice, setVoice, imagePreview, setImagePreview,
     isGenerating, isProcessingFile, isDragging, error,
     onGenerate, onRetry, onOpenApiKeyModal,
     imageInputRef, docFileInputRef, handleImageUpload, 
@@ -109,6 +116,22 @@ export const InputPanel: React.FC<InputPanelProps> = (props) => {
               ))}
             </div>
           </div>
+
+          {/* Voice Selector */}
+          <div>
+            <label className="flex items-center gap-2 text-sm font-black text-brand-green mb-3 uppercase tracking-wider">
+              <Mic size={18} className="text-emerald-500" /> Giọng đọc AI
+            </label>
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+              {VOICES.map((v) => (
+                <button key={v.value} onClick={() => setVoice(v.value)}
+                  className={`px-1 py-2 rounded-xl text-[11px] sm:text-xs font-black border-2 transition-all
+                    ${voice === v.value ? 'bg-brand-green border-brand-green-dark text-white shadow-[0_4px_0_#064e3b] -translate-y-1' : 'bg-white border-slate-200 text-slate-900 hover:border-emerald-300 hover:bg-emerald-50'}`}
+                >{v.label}</button>
+              ))}
+            </div>
+          </div>
+
           {/* Generate Button */}
           <button onClick={onGenerate} disabled={isGenerating}
             className={`w-full py-3.5 sm:py-4 rounded-2xl font-black text-white shadow-xl transition-all flex items-center justify-center gap-2 text-base sm:text-lg
