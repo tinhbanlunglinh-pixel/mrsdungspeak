@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Image as ImageIcon, FileText, Volume2, Pause, RefreshCw, Target, Play } from 'lucide-react';
-import { VocabularyItem, EnglishLevel } from '../types';
+import { Image as ImageIcon, FileText, Volume2, Pause, RefreshCw, Target, Play, Mic } from 'lucide-react';
+import { VocabularyItem, EnglishLevel, TTSVoice } from '../types';
 
 interface PosterPreviewProps {
   readingText: string | null;
@@ -18,8 +18,19 @@ interface PosterPreviewProps {
   setIsPlaying: (playing: boolean) => void;
   handlePlayAudio: () => Promise<void>;
   onToggleTranslation: () => void;
+  voice: TTSVoice;
+  setVoice: (v: TTSVoice) => void;
+  regenerateAudio: (v: TTSVoice) => Promise<void>;
   posterRef: React.RefObject<HTMLDivElement | null>;
 }
+
+const VOICES: { label: string; value: TTSVoice }[] = [
+  { label: "👦 Trẻ em (Puck)", value: "Puck" },
+  { label: "👩 Nữ trẻ (Kore)", value: "Kore" },
+  { label: "👩 Nữ trầm (Aoede)", value: "Aoede" },
+  { label: "👨 Nam ấm (Charon)", value: "Charon" },
+  { label: "👨 Nam trầm (Fenrir)", value: "Fenrir" },
+];
 
 const SPEED_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5];
 
@@ -28,6 +39,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
   generatedTopicName, topic, level, showTranslation,
   audioUrl, audioRef, isPlaying, isAudioLoading, isBrowserTTS,
   setIsPlaying, handlePlayAudio,
+  voice, setVoice, regenerateAudio,
   onToggleTranslation,
   posterRef
 }) => {
@@ -69,6 +81,33 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
             >
               {isAudioLoading && !audioUrl && !isBrowserTTS ? <RefreshCw size={18} className="animate-spin" /> : isPlaying ? <Pause size={18} /> : <Volume2 size={18} />}
             </button>
+          </div>
+        </div>
+
+        {/* Voice Selector */}
+        <div className="mb-4 mt-1 bg-slate-50/50 p-2 sm:p-3 rounded-xl border border-slate-100" data-html2canvas-ignore>
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <Mic size={14} className="text-emerald-500" />
+            <span className="text-[10px] sm:text-xs font-bold text-emerald-700 uppercase tracking-wider">Chọn Giọng đọc AI</span>
+            {isAudioLoading && <span className="text-[10px] text-emerald-500 font-medium ml-auto animate-pulse">Đang chuẩn bị...</span>}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
+            {VOICES.map((v) => (
+              <button key={v.value} 
+                onClick={() => {
+                  setVoice(v.value);
+                  regenerateAudio(v.value);
+                }}
+                disabled={isAudioLoading}
+                className={`px-1 py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[10px] sm:text-xs font-black transition-all flex items-center justify-center
+                  ${voice === v.value 
+                    ? 'bg-emerald-500 text-white shadow-md' 
+                    : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50'
+                  } ${isAudioLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {v.label}
+              </button>
+            ))}
           </div>
         </div>
 

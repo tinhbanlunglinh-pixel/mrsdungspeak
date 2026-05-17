@@ -217,16 +217,16 @@ const CompleteResult: React.FC<{
       {(evaluation.standardSentences?.length || 0) > 0 && (
         <div className="pt-3 border-t border-gray-100 space-y-3">
           <div>
-            <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">Câu mẫu luyện tập</div>
+            <div className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2">Câu mẫu luyện tập</div>
             {evaluation.standardSentences?.map((sentence, idx) => (
-              <p key={idx} className="text-xs text-gray-700 bg-gray-50 p-2 rounded-lg border border-gray-100 mb-1">{sentence}</p>
+              <p key={idx} className="text-sm sm:text-base text-gray-700 bg-gray-50 p-3 rounded-xl border border-gray-100 mb-2 font-medium">{sentence}</p>
             ))}
           </div>
           <div>
-            <div className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-1">Bài tập đề xuất</div>
-            <div className="flex flex-wrap gap-2">
+            <div className="text-xs font-black text-indigo-600 uppercase tracking-widest mb-2 mt-2">Bài tập đề xuất</div>
+            <div className="flex flex-col gap-2">
               {evaluation.personalizedExercises?.map((ex, idx) => (
-                <div key={idx} className="text-[10px] font-medium text-indigo-600 bg-indigo-50 px-2 py-1 rounded-full border border-indigo-100">{ex}</div>
+                <div key={idx} className="text-sm text-indigo-700 bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 font-medium">{ex}</div>
               ))}
             </div>
           </div>

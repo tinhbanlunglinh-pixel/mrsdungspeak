@@ -4,7 +4,7 @@ export type { EvaluationResult, EnglishLevel, VocabularyItem };
 
 export type AspectRatio = "1:1" | "3:4" | "4:3" | "9:16" | "16:9";
 export type ContentMode = "generate" | "useInput" | "image";
-export type TTSVoice = "Kore" | "Charon" | "Puck";
+export type TTSVoice = "Kore" | "Charon" | "Puck" | "Aoede" | "Fenrir";
 
 export interface AppState {
   topic: string;

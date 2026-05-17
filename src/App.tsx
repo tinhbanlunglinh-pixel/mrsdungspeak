@@ -259,7 +259,6 @@ export default function App() {
             topic={topic} setTopic={setTopic}
             level={level} setLevel={setLevel}
             contentMode={contentMode} setContentMode={setContentMode}
-            voice={voice} setVoice={setVoice}
             imagePreview={imagePreview} setImagePreview={setImagePreview}
             isGenerating={isGenerating}
             isProcessingFile={fileProcessor.isProcessingFile}
@@ -326,6 +325,7 @@ export default function App() {
                         isPlaying={audioPlayer.isPlaying} isAudioLoading={audioPlayer.isAudioLoading}
                         isBrowserTTS={audioPlayer.isBrowserTTS}
                         setIsPlaying={audioPlayer.setIsPlaying} handlePlayAudio={audioPlayer.handlePlayAudio}
+                        voice={voice} setVoice={setVoice} regenerateAudio={audioPlayer.regenerateAudio}
                         isDownloading={isDownloading}
                         onToggleTranslation={() => setShowTranslation(!showTranslation)}
                         posterRef={posterRef}
