@@ -574,9 +574,11 @@ BƯỚC 0: KIỂM TRA ĐỘ HOÀN THÀNH VÀ TÍNH CHÍNH XÁC NỘI DUNG (ZERO 
    - Fluency (Tốc độ và sự trôi chảy).
    - Connected Speech (Nối âm, nuốt âm đặc trưng người bản ngữ).
 
-2. Xếp loại:
-   - Tổng điểm (Score): Điểm trung bình có trọng số của các tiêu chí trên.
-   - Xếp loại CEFR (A1-C2).
+2. Cách tính Tổng điểm (Score) - LƯU Ý ĐẶC BIỆT:
+   - ĐIỂM CƠ BẢN: Nếu học sinh đọc ĐỦ HẾT BÀI và phát âm cơ bản không bị sai lệch nghĩa, mức điểm mặc định là 7.0/10.
+   - ĐIỂM CỘNG THÊM: Nếu học sinh làm tốt các yếu tố nâng cao (Trọng âm, Ngữ điệu, Trôi chảy, Nối âm), hãy cộng thêm điểm từ mức 7.0 này lên tối đa 10.0.
+   - Các điểm tiêu chí thành phần (criteriaScores) vẫn chấm trên thang 10, nhưng Tổng điểm (score) phải bám sát mốc cơ bản 7.0 này.
+   - Xếp loại CEFR (A1-C2) tương ứng với tổng điểm và trình độ thể hiện.
 
 3. Phân tích lỗi sai cụ thể (IPA Analysis - BẮT BUỘC):
    - Chỉ ra 3-5 từ học sinh phát âm sai nhất. Bắt buộc cung cấp mảng ipaAnalysis kể cả khi chỉ sai một lỗi nhỏ.
