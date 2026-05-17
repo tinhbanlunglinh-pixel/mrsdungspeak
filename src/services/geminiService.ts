@@ -163,12 +163,16 @@ export const generateContent = async (
   5. A list of 3-5 key vocabulary words from the text with their IPA pronunciation and a SHORT, CONCISE Vietnamese meaning.
   CRITICAL: The "meaning" field MUST be in Vietnamese and MUST be very brief (e.g. "con mèo" instead of a long explanation).
   
-  Cambridge Level Specifics (ONLY for 'generate' mode, IGNORE these word limits for 'useInput' mode):
-  - Starters (Pre-A1): Focus on nouns, colors, numbers, and simple actions. 20-40 words.
-  - Movers (A1): Simple present, present continuous, basic descriptions. 40-60 words.
-  - Flyers (A2): Past simple, future with 'going to', comparisons. 60-80 words.
-  - A1/A2: Standard CEFR elementary content.
-  - B1/B2: More complex structures, opinions, and abstract concepts.
+  CRITICAL WORD COUNT LIMITS FOR READING PASSAGE (ONLY for 'generate' mode, IGNORE for 'useInput' mode):
+  You MUST strictly adhere to the following word count limits based on the selected level:
+  - Starters (Pre-A1): Exactly 20-40 words. Use simple nouns, colors, numbers, and basic actions.
+  - Movers: Exactly 45-60 words. Use simple present, present continuous.
+  - Flyers: Exactly 65-85 words. Use past simple, future with 'going to'.
+  - A1: Exactly 50-70 words.
+  - A2: Exactly 80-110 words.
+  - B1: Exactly 150-200 words.
+  - B2: Exactly 200-250 words.
+  Do not exceed these limits. If you write more words than the limit, the lesson will fail!
   
   User Information (if provided):
   - Name: ${userName || 'Unknown'}
@@ -244,7 +248,7 @@ export const generateImage = async (
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
   // Quality keywords to append for sharper, more realistic images
-  const qualitySuffix = ', masterpiece, photorealistic, crystal clear, ultra sharp focus, 4k resolution, DSLR quality, professional photography, vivid colors, high detail, perfect anatomy, no deformities';
+  const qualitySuffix = ', masterpiece, photorealistic, crystal clear, ultra sharp focus, 4k resolution, DSLR quality, perfect anatomy, perfectly formed faces, symmetrical eyes, no deformities, no facial distortion, no blur';
   const fullPrompt = (prompt + qualitySuffix).substring(0, 800);
 
   try {
@@ -271,11 +275,11 @@ export const generateImage = async (
     // Nếu lỗi (do hết quota hoặc key không hỗ trợ imagen), fallback về Pollinations
     const cleanPrompt = encodeURIComponent(fullPrompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, ''));
     const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-    // Tăng độ phân giải cơ bản lên để ảnh nét hơn
-    const width = 1920;
+    // Dùng độ phân giải 1024 thay vì 1920 để tránh model AI (như Flux) sinh lỗi cấu trúc cơ thể/khuôn mặt
+    const width = 1024;
     const height = Math.round(width * (heightRatio / widthRatio));
-    // Sử dụng enhance=true để Pollinations tự động làm nét và tối ưu prompt
-    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
+    // enhance=false giúp giữ nguyên prompt chi tiết chống lỗi của mình, tránh bị can thiệp làm hỏng ảnh
+    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=false`;
   }
 };
 
