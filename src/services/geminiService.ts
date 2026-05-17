@@ -247,45 +247,64 @@ export const generateImage = async (
   prompt: string,
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
-  // Imagen 3 hoạt động tốt nhất với mô tả tự nhiên, chi tiết, TÍCH CỰC.
-  // KHÔNG dùng negative prompt (no blur, no distortion...) vì Imagen 3 không xử lý tốt.
-  // Giữ prompt ngắn gọn, tập trung vào chất lượng mong muốn.
-  const qualitySuffix = ', photorealistic, highly detailed, sharp focus, professional lighting, vivid colors, 4k resolution';
-  const fullPrompt = (prompt + qualitySuffix).substring(0, 800);
+  // Prompt tự nhiên — Nano Banana models hoạt động tốt nhất với mô tả chi tiết, tích cực
+  const imagePrompt = `Generate a photorealistic, highly detailed image with sharp focus and vivid colors: ${prompt}`;
 
-  try {
-    // === CHIẾN LƯỢC 1: Google Imagen 3 (cùng engine với AI Studio) ===
-    // Dùng image/png (lossless) thay vì image/jpeg (lossy) để giữ nguyên chất lượng gốc.
-    // Đây chính xác là cách AI Studio render ảnh nét.
-    const response = await getAI().models.generateImages({
-      model: 'imagen-3.0-generate-002',
-      prompt: fullPrompt,
-      config: {
-        numberOfImages: 1,
-        aspectRatio: aspectRatio,
-        outputMimeType: 'image/png',
-      },
-    });
+  // Model chính thức từ Google Docs (ai.google.dev/gemini-api/docs/image-generation)
+  // Đây là "Nano Banana" — engine tạo ảnh gốc của Gemini, giống AI Studio
+  const IMAGE_MODELS = [
+    'gemini-2.5-flash-preview-image-generation',  // Nano Banana (ổn định, nhanh)
+    'gemini-2.0-flash-preview-image-generation',   // Backup
+  ];
 
-    const generatedImage = response?.generatedImages?.[0];
-    if (generatedImage?.image?.imageBytes) {
-      // Trả về data URI dạng base64 PNG — lossless, không mất chi tiết
-      return `data:image/png;base64,${generatedImage.image.imageBytes}`;
+  for (const model of IMAGE_MODELS) {
+    try {
+      console.log(`[IMAGE] 🎨 Trying ${model}...`);
+      
+      // Cách gọi chính xác từ official docs JS example:
+      // contents truyền thẳng string, config chỉ cần responseModalities
+      const response = await getAI().models.generateContent({
+        model,
+        contents: imagePrompt,
+        config: {
+          responseModalities: [Modality.TEXT, Modality.IMAGE],
+        },
+      });
+
+      // Tìm ảnh trong response parts
+      const parts = response?.candidates?.[0]?.content?.parts || [];
+      for (const part of parts) {
+        if (part.inlineData?.data && part.inlineData?.mimeType?.startsWith('image/')) {
+          const imgMime = part.inlineData.mimeType;
+          const imgData = typeof part.inlineData.data === 'string' ? part.inlineData.data : String(part.inlineData.data);
+          if (imgData.length < 1000) {
+            console.warn(`[IMAGE] ⚠️ ${model} ảnh quá nhỏ (${imgData.length}), bỏ qua`);
+            continue;
+          }
+          console.log(`[IMAGE] ✅ ${model} thành công! Format: ${imgMime}, Size: ${imgData.length} bytes`);
+          return `data:${imgMime};base64,${imgData}`;
+        }
+      }
+      console.warn(`[IMAGE] ⚠️ ${model} không trả về ảnh trong response`);
+    } catch (err: any) {
+      const msg = err?.message || String(err);
+      console.warn(`[IMAGE] ❌ ${model} thất bại: ${msg.substring(0, 300)}`);
+      // Lỗi API key → dừng ngay
+      if (msg.includes("403") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("permission denied")) {
+        console.error("[IMAGE] 🔑 Lỗi API key, dừng tất cả");
+        break;
+      }
+      continue;
     }
-    throw new Error("Không nhận được dữ liệu ảnh từ Imagen 3.");
-  } catch (err: any) {
-    console.error("Imagen 3 failed, falling back to Pollinations:", err);
-
-    // === CHIẾN LƯỢC 2: Pollinations AI (fallback khi Imagen 3 lỗi/hết quota) ===
-    const cleanPrompt = encodeURIComponent(
-      prompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, '')
-    );
-    const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-    const width = 1024;
-    const height = Math.round(width * (heightRatio / widthRatio));
-    // enhance=true để Pollinations tự tối ưu prompt cho model Flux
-    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
   }
+
+  // FALLBACK CUỐI: Pollinations AI (luôn hoạt động, không cần API key)
+  console.warn("[IMAGE] ⚠️ Gemini thất bại, dùng Pollinations fallback...");
+  const cleanPrompt = encodeURIComponent(prompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, ''));
+  const [w, h] = aspectRatio.split(':').map(Number);
+  const width = 1024;
+  const height = Math.round(width * (h / w));
+  return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
 };
 
 // ============================================================
