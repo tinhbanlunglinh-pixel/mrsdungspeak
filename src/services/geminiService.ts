@@ -247,28 +247,28 @@ export const generateImage = async (
   prompt: string,
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
-  // Prompt tự nhiên — Nano Banana models hoạt động tốt nhất với mô tả chi tiết, tích cực
+  // Prompt tự nhiên — Nano Banana hoạt động tốt nhất với mô tả chi tiết, tích cực
   const imagePrompt = `Generate a photorealistic, highly detailed image with sharp focus and vivid colors: ${prompt}`;
 
-  // Model chính thức từ Google Docs (ai.google.dev/gemini-api/docs/image-generation)
-  // Đây là "Nano Banana" — engine tạo ảnh gốc của Gemini, giống AI Studio
+  // Tên model CHÍNH XÁC từ Google Docs (ai.google.dev/gemini-api/docs/image-generation):
+  // - gemini-2.5-flash-image: Nano Banana (ổn định)
+  // - gemini-3.1-flash-image-preview: Nano Banana 2 (mới nhất)
+  // - gemini-3-pro-image-preview: Nano Banana Pro (chất lượng cao nhất)
   const IMAGE_MODELS = [
-    'gemini-2.5-flash-preview-image-generation',  // Nano Banana (ổn định, nhanh)
-    'gemini-2.0-flash-preview-image-generation',   // Backup
+    'gemini-2.5-flash-preview-image-generation',
+    'gemini-2.5-flash-image',
+    'gemini-3.1-flash-image-preview',
   ];
 
   for (const model of IMAGE_MODELS) {
     try {
       console.log(`[IMAGE] 🎨 Trying ${model}...`);
       
-      // Cách gọi chính xác từ official docs JS example:
-      // contents truyền thẳng string, config chỉ cần responseModalities
+      // Cách gọi giống CHÍNH XÁC JS example trong official docs:
+      // Chỉ cần model + contents (string) — KHÔNG cần config
       const response = await getAI().models.generateContent({
         model,
         contents: imagePrompt,
-        config: {
-          responseModalities: [Modality.TEXT, Modality.IMAGE],
-        },
       });
 
       // Tìm ảnh trong response parts
