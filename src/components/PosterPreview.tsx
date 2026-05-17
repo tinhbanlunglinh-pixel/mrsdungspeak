@@ -105,10 +105,10 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
           <div className="bg-white/40 p-3 sm:p-4 md:p-8 rounded-[2rem] border-2 border-white shadow-lg backdrop-blur-sm mx-auto w-full max-w-[95%]">
             <div className="text-[11px] font-black uppercase tracking-[0.4em] mb-4 text-center" style={{ color: '#0369a1', opacity: 0.5 }}>READING PASSAGE</div>
             <div
-              className="leading-[1.6] whitespace-pre-wrap font-bold text-left md:text-justify px-2"
+              className="leading-[1.6] whitespace-pre-wrap font-medium text-left md:text-justify px-2"
               style={{
                 color: '#1e293b',
-                fontSize: readingText && readingText.length > 500 ? '18px' : readingText && readingText.length > 300 ? '22px' : readingText && readingText.length > 150 ? '26px' : '30px',
+                fontSize: readingText && readingText.length > 500 ? '15px' : readingText && readingText.length > 300 ? '17px' : readingText && readingText.length > 150 ? '19px' : '22px',
                 fontFamily: '"Outfit", sans-serif'
               }}
             >
@@ -119,7 +119,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
           {showTranslation && translationText && (
             <div className="space-y-2 pt-3" style={{ borderTop: '2px solid #fef3c7' }}>
               <div className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#d97706' }}>Tiếng Việt</div>
-              <div className="text-sm sm:text-lg leading-relaxed whitespace-pre-wrap font-bold italic" style={{ color: '#334155' }}>
+              <div className="text-sm sm:text-base leading-relaxed whitespace-pre-wrap font-medium italic" style={{ color: '#334155' }}>
                 {translationText}
               </div>
             </div>
