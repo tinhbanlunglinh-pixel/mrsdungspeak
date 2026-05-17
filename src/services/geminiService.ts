@@ -244,8 +244,8 @@ export const generateImage = async (
   aspectRatio: "1:1" | "3:4" | "4:3" | "9:16" | "16:9" = "1:1"
 ): Promise<string> => {
   // Quality keywords to append for sharper, more realistic images
-  const qualitySuffix = ', photorealistic, ultra sharp focus, 8k UHD, DSLR quality, professional photography, vivid colors, high detail';
-  const fullPrompt = (prompt + qualitySuffix).substring(0, 500);
+  const qualitySuffix = ', masterpiece, photorealistic, ultra sharp focus, 8k UHD, DSLR quality, professional photography, vivid colors, high detail, perfect anatomy, no deformities';
+  const fullPrompt = (prompt + qualitySuffix).substring(0, 800);
 
   try {
     // Sử dụng Imagen 3 (của Google) thay vì Pollinations
@@ -271,9 +271,11 @@ export const generateImage = async (
     // Nếu lỗi (do hết quota hoặc key không hỗ trợ imagen), fallback về Pollinations
     const cleanPrompt = encodeURIComponent(fullPrompt.replace(/[#%&{}\\<>*?/$!'":@+`|=]/g, ''));
     const [widthRatio, heightRatio] = aspectRatio.split(':').map(Number);
-    const width = 1536;
+    // Tăng độ phân giải cơ bản lên để ảnh nét hơn
+    const width = 1920;
     const height = Math.round(width * (heightRatio / widthRatio));
-    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=false`;
+    // Sử dụng enhance=true để Pollinations tự động làm nét và tối ưu prompt
+    return `https://image.pollinations.ai/prompt/${cleanPrompt}?width=${width}&height=${height}&seed=${Math.floor(Math.random() * 1000000)}&nologo=true&model=flux&enhance=true`;
   }
 };
 
