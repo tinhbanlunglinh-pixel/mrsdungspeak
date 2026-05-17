@@ -22,9 +22,10 @@ const getAI = () => {
 
 // Model fallback chain per AI_INSTRUCTIONS.md
 const TEXT_MODELS = [
+  "gemini-3.1-flash",
+  "gemini-3.0-flash",
   "gemini-2.5-flash",
   "gemini-2.0-flash",
-  "gemini-1.5-flash",
 ];
 
 // TTS-specific models (only these support responseModalities: [AUDIO] with speechConfig)
@@ -78,6 +79,7 @@ async function generateWithFallback(
     config: any;
   }
 ): Promise<any> {
+  const errors: string[] = [];
   let lastError: any = null;
 
   for (const model of models) {
@@ -92,6 +94,7 @@ async function generateWithFallback(
     } catch (err: any) {
       lastError = err;
       const errorMsg = err?.message || String(err);
+      errors.push(`[${model}]: ${errorMsg}`);
       
       // Don't fallback for auth errors — they'll fail on all models
       if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.toLowerCase().includes("permission denied")) {
@@ -112,6 +115,10 @@ async function generateWithFallback(
 
   // All models failed
   if (lastError) {
+    // If we have multiple errors, combine them so we know what actually happened to the primary models
+    if (errors.length > 0) {
+      lastError.message = `All models failed. Details: ${errors.join(" | ")}`;
+    }
     handleApiError(lastError);
   }
   throw new Error("All models failed. Please try again later.");
