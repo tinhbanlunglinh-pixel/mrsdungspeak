@@ -30,7 +30,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       const canvas = await html2canvas(certificateRef.current, {
-        useCORS: true, allowTaint: true, scale: 2,
+        useCORS: true, allowTaint: true, scale: window.devicePixelRatio ? Math.max(3, window.devicePixelRatio * 2) : 3,
         backgroundColor: '#ffffff', logging: true, imageTimeout: 15000,
         onclone: (clonedDoc) => {
           const container = clonedDoc.querySelector('[data-certificate-container]') as HTMLElement;

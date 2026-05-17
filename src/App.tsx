@@ -244,7 +244,7 @@ export default function App() {
       const canvas = await html2canvas(posterRef.current, {
         useCORS: true, 
         allowTaint: false, // Critical: prevent taint to avoid SecurityError on toDataURL
-        scale: 2,
+        scale: window.devicePixelRatio ? Math.max(3, window.devicePixelRatio * 2) : 3,
         backgroundColor: '#ffffff', logging: true, imageTimeout: 15000, removeContainer: true,
         onclone: (clonedDoc) => {
           const container = clonedDoc.querySelector('[data-poster-container]') as HTMLElement;

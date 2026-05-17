@@ -56,7 +56,19 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
       {/* Image */}
       <div className="w-full overflow-hidden" style={{ borderRadius: '12px', border: '4px solid #f8fafc', boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.06)' }}>
         {generatedImage ? (
-          <img src={generatedImage} alt="Generated Illustration" className="w-full h-auto object-contain" crossOrigin="anonymous" referrerPolicy="no-referrer" />
+          <img 
+            src={generatedImage} 
+            alt="Generated Illustration" 
+            className="w-full h-auto object-contain" 
+            style={{ 
+              objectFit: 'contain', 
+              width: '100%', 
+              height: 'auto', 
+              imageRendering: 'auto' 
+            }}
+            crossOrigin="anonymous" 
+            referrerPolicy="no-referrer" 
+          />
         ) : (
           <div className="w-full aspect-square flex items-center justify-center" style={{ backgroundColor: '#f9fafb' }}>
             <ImageIcon style={{ color: '#e5e7eb' }} size={48} />
