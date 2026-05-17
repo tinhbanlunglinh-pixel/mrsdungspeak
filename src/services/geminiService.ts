@@ -160,8 +160,8 @@ export const generateContent = async (
      }
   3. A short, catchy, and exciting title/topic name for this lesson (max 5 words). EVEN IN 'useInput' MODE, you must create a concise title based on the content if the input was long text.
   4. A Vietnamese translation of the reading passage. ${mode === 'useInput' ? 'Translate the COMPLETE text, not a summary.' : ''}
-  5. A list of 3-5 key vocabulary words from the text with their IPA pronunciation and Vietnamese meaning.
-  CRITICAL: Each vocabulary item MUST be extracted fully. DO NOT abbreviate or truncate words or meanings even for long definitions.
+  5. A list of 3-5 key vocabulary words from the text with their IPA pronunciation and a SHORT, CONCISE Vietnamese meaning.
+  CRITICAL: The "meaning" field MUST be in Vietnamese and MUST be very brief (e.g. "con mèo" instead of a long explanation).
   
   Cambridge Level Specifics (ONLY for 'generate' mode, IGNORE these word limits for 'useInput' mode):
   - Starters (Pre-A1): Focus on nouns, colors, numbers, and simple actions. 20-40 words.

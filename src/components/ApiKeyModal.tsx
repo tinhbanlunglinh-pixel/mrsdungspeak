@@ -35,7 +35,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, o
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            onClick={onClose}
+            // Removed onClick to prevent accidental closing on mobile when switching tabs
           />
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -53,16 +53,33 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, o
               </p>
               
               <div className="w-full space-y-4">
-                <div className="text-left">
+                <div className="text-left relative">
                   <label className="text-xs font-black text-brand-green uppercase tracking-widest block mb-2 px-1">Nhập API Key</label>
-                  <input 
-                    type="password"
-                    placeholder="AIzaSyB..."
-                    value={localKey}
-                    onChange={(e) => setLocalKey(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
-                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-green/10 focus:border-brand-green transition-all font-mono text-sm"
-                  />
+                  <div className="relative">
+                    <input 
+                      type="password"
+                      placeholder="AIzaSyB..."
+                      value={localKey}
+                      onChange={(e) => setLocalKey(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+                      className="w-full pl-5 pr-20 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-green/10 focus:border-brand-green transition-all font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const text = await navigator.clipboard.readText();
+                          if (text) setLocalKey(text);
+                        } catch (err) {
+                          console.error("Failed to read clipboard contents: ", err);
+                          alert("Trình duyệt không hỗ trợ dán tự động. Vui lòng nhấn giữ vào ô nhập và chọn 'Dán'.");
+                        }
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emerald-100 text-brand-green hover:bg-emerald-200 font-bold text-xs rounded-xl transition-all"
+                    >
+                      DÁN
+                    </button>
+                  </div>
                 </div>
 
                 <a 
