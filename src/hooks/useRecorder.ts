@@ -32,7 +32,8 @@ export function useRecorder(
       reader.onloadend = async () => {
         try {
           const base64Audio = (reader.result as string).split(',')[1];
-          const result = await evaluateSpeech(readingText, base64Audio, level);
+          const mimeType = audioChunksRef.current[0]?.type || 'audio/webm';
+          const result = await evaluateSpeech(readingText, base64Audio, level, mimeType);
           setEvaluation(result);
           setIsEvaluating(false);
         } catch (err: any) {

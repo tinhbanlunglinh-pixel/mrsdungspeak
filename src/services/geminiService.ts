@@ -96,15 +96,15 @@ async function generateWithFallback(
       const errorMsg = err?.message || String(err);
       errors.push(`[${model}]: ${errorMsg}`);
       
-      // Don't fallback for auth errors — they'll fail on all models
-      if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.toLowerCase().includes("permission denied")) {
-        throw new Error("INVALID_KEY");
-      }
-      
-      // For quota/rate limit errors, try next model
+      // For quota/rate limit errors, try next model first
       if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("resource_exhausted")) {
         console.warn(`Model ${model} hit quota limit, trying next model...`);
         continue;
+      }
+      
+      // Don't fallback for auth errors — they'll fail on all models
+      if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.toLowerCase().includes("permission denied")) {
+        throw new Error("INVALID_KEY");
       }
       
       // For other errors (model not found, etc.), try next model
@@ -547,7 +547,8 @@ export interface EvaluationResult {
 export const evaluateSpeech = async (
   originalText: string,
   audioData: string,
-  level: EnglishLevel
+  level: EnglishLevel,
+  mimeType: string = "audio/webm"
 ): Promise<EvaluationResult> => {
   const systemInstruction = `Bạn là một giám khảo chấm phát âm tiếng Anh chuẩn quốc tế (IPA, CEFR) cực kỳ nghiêm túc nhưng cũng rất yêu thương, đóng vai Mrs. Dung.
 
@@ -604,28 +605,28 @@ Output định dạng JSON:
   "improvements": string[]
 }`;
 
-  const response = await generateWithFallback(TEXT_MODELS, {
-    contents: [
-      {
-        role: "user",
-        parts: [
-          { text: `Original Text: ${originalText}\nTarget Level: ${level}\nAnalyze the audio carefully word by word.` },
-          {
-            inlineData: {
-              mimeType: "audio/wav",
-              data: audioData,
-            },
-          },
-        ],
-      },
-    ],
-    config: { 
-      systemInstruction,
-      responseMimeType: "application/json"
-    },
-  });
-
   try {
+    const response = await generateWithFallback(TEXT_MODELS, {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: `Original Text: ${originalText}\nTarget Level: ${level}\nAnalyze the audio carefully word by word.` },
+            {
+              inlineData: {
+                mimeType: mimeType,
+                data: audioData,
+              },
+            },
+          ],
+        },
+      ],
+      config: { 
+        systemInstruction,
+        responseMimeType: "application/json"
+      },
+    });
+
     const cleanText = (response.text || "{}")
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/, '')
@@ -648,9 +649,12 @@ Output định dạng JSON:
   } catch (err: any) {
     console.error("Speech Evaluation Error:", err);
     const msg = err?.message || String(err);
+    if (msg === "INVALID_KEY" || msg === "QUOTA_EXCEEDED") {
+      throw err;
+    }
     if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
       throw new Error("QUOTA_EXCEEDED");
     }
-    throw new Error("Failed to evaluate speech. Please try again.");
+    throw new Error(`Lỗi đánh giá: ${msg}`);
   }
 };
