@@ -36,15 +36,14 @@ const getAI = () => {
   });
 };
 
-// Model fallback chain — updated May 2026
-// Each model has separate quota pools, so fallback improves resilience on free tier
+// Model fallback chain — updated May 2026 (verified from ai.google.dev/gemini-api/docs/models)
+// ONLY include models that are currently ACTIVE (not shut down or deprecated)
 const TEXT_MODELS = [
-  "gemini-3-flash-preview",   // Gemini 3 Flash
-  "gemini-3-pro-preview",     // Gemini 3 Pro
-  "gemini-2.5-flash",         // Gemini 2.5 Flash
-  "gemini-2.0-flash",         // Fallback 1: still available until June 2026
-  "gemini-2.5-flash-lite",    // Fallback 2: lightweight, separate quota pool
-  "gemini-3.5-flash",         // Fallback 3: latest generation
+  "gemini-2.5-flash",         // Stable, best price-performance, recommended
+  "gemini-3.5-flash",         // Stable, newest generation
+  "gemini-3-flash-preview",   // Preview, frontier-class
+  "gemini-2.5-flash-lite",    // Stable, fastest and most budget-friendly
+  // NOTE: gemini-3-pro-preview is SHUT DOWN, gemini-2.0-flash is DEPRECATED — do NOT use
 ];
 
 const getSelectedModel = (): string => {
@@ -52,7 +51,7 @@ const getSelectedModel = (): string => {
     const localModel = localStorage.getItem("selected_model");
     if (localModel && localModel.trim() !== "") return localModel.trim();
   }
-  return "gemini-3-flash-preview"; // Default model per AI_INSTRUCTIONS.md
+  return "gemini-2.5-flash"; // Default: most stable and reliable model
 };
 
 const getFallbackChain = (): string[] => {
@@ -68,9 +67,10 @@ const getFallbackChain = (): string[] => {
 };
 
 // TTS-specific models (using stable multimodal models supporting audio outputs)
+// NOTE: gemini-2.0-flash is deprecated, removed from TTS fallback
 const TTS_MODELS = [
   "gemini-2.5-flash",
-  "gemini-2.0-flash",
+  "gemini-2.5-flash-lite",
 ];
 
 export interface VocabularyItem {
@@ -390,9 +390,8 @@ export const generateImage = async (
   // - gemini-3.1-flash-image-preview: Nano Banana 2 (mới nhất)
   // - gemini-3-pro-image-preview: Nano Banana Pro (chất lượng cao nhất)
   const IMAGE_MODELS = [
-    'gemini-2.5-flash-preview-image-generation',
-    'gemini-2.5-flash-image',
-    'gemini-3.1-flash-image-preview',
+    'gemini-2.5-flash-image',           // Nano Banana (stable)
+    'gemini-3.1-flash-image',           // Nano Banana 2 (stable, newest)
   ];
 
   for (const model of IMAGE_MODELS) {

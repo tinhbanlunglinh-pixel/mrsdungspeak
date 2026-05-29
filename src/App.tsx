@@ -31,7 +31,7 @@ export default function App() {
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState<EnglishLevel>("Starters");
   const [apiKey, setApiKey] = useState(localStorage.getItem("GEMINI_API_KEY") || "");
-  const [selectedModel, setSelectedModel] = useState(localStorage.getItem("selected_model") || "gemini-3-flash-preview");
+  const [selectedModel, setSelectedModel] = useState(localStorage.getItem("selected_model") || "gemini-2.5-flash");
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [contentMode, setContentMode] = useState<ContentMode>("generate");
