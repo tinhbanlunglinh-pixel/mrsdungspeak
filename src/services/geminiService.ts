@@ -9,7 +9,7 @@ const getApiKey = () => {
   
   // Fallback to environment variable
   const envKey = process.env.GEMINI_API_KEY;
-  if (!envKey || envKey === "UNDEFINED" || envKey === "MY_GEMINI_API_KEY") {
+  if (!envKey || envKey === "UNDEFINED" || envKey === "undefined" || envKey === "MY_GEMINI_API_KEY") {
     console.warn("GEMINI_API_KEY is not set or using placeholder.");
   }
   return envKey || "";
@@ -558,7 +558,7 @@ export const generateAudio = async (text: string, level: EnglishLevel, voice: st
     console.warn("[TTS] Gemini TTS failed, falling back to browser TTS:", err?.message);
     
     // For quota/key errors, propagate up so UI can show specific message
-    if (err?.message === "QUOTA_EXCEEDED" || err?.message === "INVALID_KEY") {
+    if (err?.message?.startsWith("QUOTA_EXCEEDED") || err?.message?.startsWith("INVALID_KEY")) {
       // Still fall back to browser TTS but don't propagate the error
       console.warn("[TTS] Auth/quota error, using browser TTS silently");
     }
@@ -746,7 +746,7 @@ Output định dạng JSON:
   } catch (err: any) {
     console.error("Speech Evaluation Error:", err);
     const msg = err?.message || String(err);
-    if (msg === "INVALID_KEY" || msg === "QUOTA_EXCEEDED") {
+    if (msg.startsWith("INVALID_KEY") || msg.startsWith("QUOTA_EXCEEDED")) {
       throw err;
     }
     if (msg.includes("429") || msg.toLowerCase().includes("quota")) {
