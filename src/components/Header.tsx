@@ -24,11 +24,9 @@ export const Header: React.FC<HeaderProps> = ({ apiKey, onOpenApiKeyModal }) => 
             <Zap size={14} className="text-brand-yellow sm:w-4 sm:h-4" />
             <span className="text-xs sm:text-sm font-black text-white whitespace-nowrap">Cài đặt API Key</span>
           </div>
-          {!apiKey && (
-            <span className="text-[9px] sm:text-[10px] font-bold text-red-500 mt-1 animate-pulse bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
-              Lấy API key để sử dụng app
-            </span>
-          )}
+          <span className="text-[9px] sm:text-[10px] font-bold text-red-500 mt-1 animate-pulse bg-white/90 px-2 py-0.5 rounded-full shadow-sm">
+            Lấy API key để sử dụng app
+          </span>
         </button>
 
         <div className="hidden md:flex items-center gap-4 text-xs font-bold text-white/80">

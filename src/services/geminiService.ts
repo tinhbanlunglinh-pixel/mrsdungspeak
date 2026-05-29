@@ -36,13 +36,36 @@ const getAI = () => {
   });
 };
 
-// Model fallback chain per AI_INSTRUCTIONS.md
+// Model fallback chain — updated May 2026
+// Each model has separate quota pools, so fallback improves resilience on free tier
 const TEXT_MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
+  "gemini-3-flash-preview",   // Gemini 3 Flash
+  "gemini-3-pro-preview",     // Gemini 3 Pro
+  "gemini-2.5-flash",         // Gemini 2.5 Flash
+  "gemini-2.0-flash",         // Fallback 1: still available until June 2026
+  "gemini-2.5-flash-lite",    // Fallback 2: lightweight, separate quota pool
+  "gemini-3.5-flash",         // Fallback 3: latest generation
 ];
+
+const getSelectedModel = (): string => {
+  if (typeof window !== "undefined") {
+    const localModel = localStorage.getItem("selected_model");
+    if (localModel && localModel.trim() !== "") return localModel.trim();
+  }
+  return "gemini-3-flash-preview"; // Default model per AI_INSTRUCTIONS.md
+};
+
+const getFallbackChain = (): string[] => {
+  const selected = getSelectedModel();
+  // Ensure the selected model is first, and other models follow without duplicates
+  const chain = [selected];
+  for (const m of TEXT_MODELS) {
+    if (m !== selected) {
+      chain.push(m);
+    }
+  }
+  return chain;
+};
 
 // TTS-specific models (only these support responseModalities: [AUDIO] with speechConfig)
 const TTS_MODELS = [
@@ -247,7 +270,7 @@ export const generateContent = async (
     });
   }
 
-  const response = await generateWithFallback(TEXT_MODELS, {
+  const response = await generateWithFallback(getFallbackChain(), {
     contents: [{ role: "user", parts }],
     config: { 
       systemInstruction,
@@ -732,7 +755,7 @@ Output định dạng JSON:
 }`;
 
   try {
-    const response = await generateWithFallback(TEXT_MODELS, {
+    const response = await generateWithFallback(getFallbackChain(), {
       contents: [
         {
           role: "user",

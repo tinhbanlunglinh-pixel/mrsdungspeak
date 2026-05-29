@@ -31,6 +31,7 @@ export default function App() {
   const [topic, setTopic] = useState('');
   const [level, setLevel] = useState<EnglishLevel>("Starters");
   const [apiKey, setApiKey] = useState(localStorage.getItem("GEMINI_API_KEY") || "");
+  const [selectedModel, setSelectedModel] = useState(localStorage.getItem("selected_model") || "gemini-3-flash-preview");
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [contentMode, setContentMode] = useState<ContentMode>("generate");
@@ -72,13 +73,6 @@ export default function App() {
       lessonHistory.updateScore(currentLessonId, recorder.evaluation.score);
     }
   }, [recorder.evaluation]);
-
-  const handleUpdateApiKey = useCallback((newKey: string) => {
-    setApiKey(newKey);
-    localStorage.setItem("GEMINI_API_KEY", newKey);
-    setShowApiKeyModal(false);
-    setError(null);
-  }, []);
 
   const handleGenerate = useCallback(async () => {
     if (!topic && !imagePreview) {
@@ -166,6 +160,24 @@ export default function App() {
     }
   }, [topic, imagePreview, contentMode, level, voice, audioPlayer, recorder, lessonHistory]);
 
+  const handleUpdateApiKey = useCallback((newKey: string, newModel: string) => {
+    setApiKey(newKey);
+    setSelectedModel(newModel);
+    localStorage.setItem("GEMINI_API_KEY", newKey);
+    localStorage.setItem("selected_model", newModel);
+    setShowApiKeyModal(false);
+    
+    // Auto-retry if there was an active error (e.g. quota/key error)
+    if (error) {
+      setError(null);
+      setTimeout(() => {
+        handleGenerate();
+      }, 100);
+    } else {
+      setError(null);
+    }
+  }, [error, handleGenerate]);
+
   const handleRetry = useCallback(() => {
     setError(null);
     handleGenerate();
@@ -205,6 +217,7 @@ export default function App() {
       <ApiKeyModal 
         show={showApiKeyModal} 
         currentApiKey={apiKey} 
+        currentModel={selectedModel}
         onSave={handleUpdateApiKey} 
         onClose={() => { if (apiKey) setShowApiKeyModal(false); }} 
       />
