@@ -226,6 +226,27 @@ export const generateContent = async (
     config: { 
       systemInstruction,
       responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          prompt: { type: Type.STRING },
+          readingText: { type: Type.STRING },
+          topicName: { type: Type.STRING },
+          translation: { type: Type.STRING },
+          vocabulary: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                word: { type: Type.STRING },
+                ipa: { type: Type.STRING },
+                meaning: { type: Type.STRING },
+                emoji: { type: Type.STRING }
+              }
+            }
+          }
+        }
+      }
     },
   });
 
@@ -256,9 +277,9 @@ export const generateContent = async (
       translation: result.translation || "",
       vocabulary: result.vocabulary || []
     };
-  } catch (e) {
+  } catch (e: any) {
     console.error("Failed to parse JSON response:", response.text, e);
-    throw new Error("Failed to parse lesson content. Please try again.");
+    throw new Error(`Failed to parse lesson content. Please try again. Raw response: "${response.text || ""}". Parse error: ${e?.message || String(e)}`);
   }
 };
 
@@ -651,7 +672,55 @@ Output định dạng JSON:
       ],
       config: { 
         systemInstruction,
-        responseMimeType: "application/json"
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            isComplete: { type: Type.BOOLEAN },
+            missingContent: { type: Type.STRING },
+            score: { type: Type.NUMBER },
+            cefrLevel: { type: Type.STRING },
+            criteriaScores: {
+              type: Type.OBJECT,
+              properties: {
+                pronunciation: { type: Type.NUMBER },
+                stress: { type: Type.NUMBER },
+                intonation: { type: Type.NUMBER },
+                fluency: { type: Type.NUMBER },
+                connectedSpeech: { type: Type.NUMBER },
+              }
+            },
+            feedback: { type: Type.STRING },
+            ipaAnalysis: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  word: { type: Type.STRING },
+                  correctIpa: { type: Type.STRING },
+                  studentIpa: { type: Type.STRING },
+                  tip: { type: Type.STRING }
+                }
+              }
+            },
+            standardSentences: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            personalizedExercises: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            strengths: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            },
+            improvements: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING }
+            }
+          }
+        }
       },
     });
 
