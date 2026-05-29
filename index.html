@@ -7,6 +7,10 @@
     <script>
       // Global error handler to overlay runtime crashes directly on screen
       window.onerror = function(message, source, lineno, colno, error) {
+        // Ignore chrome/firefox extension errors
+        if (source && (source.startsWith('chrome-extension://') || source.startsWith('moz-extension://') || source.includes('injectScript.js'))) {
+          return false;
+        }
         const show = function() {
           if (document.getElementById('runtime-error-overlay')) return;
           const errorDiv = document.createElement('div');
@@ -32,6 +36,11 @@
       };
 
       window.onunhandledrejection = function(event) {
+        const reason = event.reason;
+        // Ignore extension promise rejections
+        if (reason && reason.stack && (reason.stack.includes('chrome-extension://') || reason.stack.includes('moz-extension://'))) {
+          return;
+        }
         const show = function() {
           if (document.getElementById('promise-error-overlay')) return;
           const errorDiv = document.createElement('div');
