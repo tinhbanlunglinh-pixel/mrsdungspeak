@@ -1,10 +1,12 @@
 import React from 'react';
-import { Mic, Square, RefreshCw, Star, ThumbsUp, CheckCircle, AlertCircle, Zap, Trophy, Target } from 'lucide-react';
+import { Mic, Square, RefreshCw, Star, ThumbsUp, CheckCircle, AlertCircle, Zap, Trophy, Volume2, Edit3 } from 'lucide-react';
 import { motion } from 'motion/react';
-import { EvaluationResult } from '../types';
+import { EvaluationResult, EnglishLevel } from '../types';
+import { speakWithBrowser } from '../services/geminiService';
 
 interface SpeechEvaluatorProps {
   readingText: string | null;
+  level: EnglishLevel;
   isRecording: boolean;
   isEvaluating: boolean;
   evaluation: EvaluationResult | null;
@@ -18,7 +20,7 @@ interface SpeechEvaluatorProps {
 }
 
 export const SpeechEvaluator: React.FC<SpeechEvaluatorProps> = ({
-  readingText, isRecording, isEvaluating, evaluation,
+  readingText, level, isRecording, isEvaluating, evaluation,
   studentName, teacherName, setStudentName, setTeacherName,
   startRecording, stopRecording, onShowCertificate
 }) => {
@@ -72,6 +74,7 @@ export const SpeechEvaluator: React.FC<SpeechEvaluatorProps> = ({
                 studentName={studentName} teacherName={teacherName}
                 setStudentName={setStudentName} setTeacherName={setTeacherName}
                 onShowCertificate={onShowCertificate}
+                level={level}
               />
             )}
           </motion.div>
@@ -106,7 +109,8 @@ const CompleteResult: React.FC<{
   studentName: string; teacherName: string;
   setStudentName: (n: string) => void; setTeacherName: (n: string) => void;
   onShowCertificate: () => void;
-}> = ({ evaluation, startRecording, studentName, teacherName, setStudentName, setTeacherName, onShowCertificate }) => (
+  level: EnglishLevel;
+}> = ({ evaluation, startRecording, studentName, teacherName, setStudentName, setTeacherName, onShowCertificate, level }) => (
   <>
     {/* Score */}
     <div className="flex items-center justify-between bg-gradient-to-br from-white to-emerald-50 p-4 sm:p-6 rounded-2xl border-2 border-emerald-200 shadow-md">
@@ -129,18 +133,29 @@ const CompleteResult: React.FC<{
     {evaluation.criteriaScores && (
       <div className="space-y-2">
         <div className="flex items-center justify-between px-1">
-          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Tiêu chí chấm điểm</span>
-          <span className="text-[9px] font-medium text-slate-400 italic">Điều kiện: Đọc đủ & đúng 100% nội dung</span>
+          <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Tiêu chí chấm điểm CEFR</span>
+          <span className="text-[9px] font-medium text-slate-400 italic">Điều kiện: Đọc đủ & đúng 100% nội dung (Tối đa 2.0 điểm/tiêu chí)</span>
         </div>
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 sm:gap-3 bg-white p-3 sm:p-4 rounded-2xl border-2 border-emerald-50 shadow-sm">
-          {Object.entries(evaluation.criteriaScores).map(([key, score]) => (
-            <div key={key} className="text-center p-2 sm:p-3 rounded-xl bg-emerald-50/30 border border-emerald-100">
-              <div className="text-[8px] sm:text-[9px] font-bold text-emerald-400 uppercase leading-tight mb-1">
-                {key === 'pronunciation' ? 'Phát âm' : key === 'stress' ? 'Trọng âm' : key === 'intonation' ? 'Ngữ điệu' : key === 'fluency' ? 'Trôi chảy' : 'Nối âm'}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2 bg-white p-2.5 sm:p-3 rounded-2xl border-2 border-emerald-50 shadow-sm text-center">
+          {[
+            { key: 'pronunciation', name: 'Phát âm' },
+            { key: 'fluency', name: 'Trôi chảy' },
+            { key: 'vocabulary', name: 'Từ vựng' },
+            { key: 'grammar', name: 'Ngữ pháp' },
+            { key: 'interaction', name: 'Tương tác' }
+          ].map(({ key, name }) => {
+            const score = (evaluation.criteriaScores as any)?.[key] || 0;
+            return (
+              <div key={key} className="p-1.5 sm:p-2 rounded-xl bg-emerald-50/30 border border-emerald-100/50">
+                <div className="text-[8px] sm:text-[9px] font-extrabold text-emerald-600 uppercase leading-none mb-1">
+                  {name}
+                </div>
+                <div className="text-sm sm:text-base font-black text-emerald-700">
+                  {score.toFixed(1)}<span className="text-[8px] font-bold text-emerald-400">/2</span>
+                </div>
               </div>
-              <div className="text-lg font-black text-emerald-600">{score}</div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     )}
@@ -181,34 +196,57 @@ const CompleteResult: React.FC<{
         </div>
       </div>
 
-      {/* IPA Analysis */}
+      {/* IPA Analysis - Giao diện các từ cần viết & phát âm lại */}
       {evaluation.ipaAnalysis && evaluation.ipaAnalysis.length > 0 && (
         <div className="pt-4 border-t-2 border-slate-50">
           <div className="flex items-center gap-2 text-indigo-600 mb-4">
-            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center"><Zap size={18} /></div>
-            <div className="text-xs font-black uppercase tracking-widest">Phân tích âm học (IPA)</div>
+            <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center"><Edit3 size={18} /></div>
+            <div className="flex flex-col">
+              <span className="text-xs font-black uppercase tracking-widest leading-none">CÁC TỪ CẦN LUYỆN TẬP LẠI (TỪ SAI)</span>
+              <span className="text-[9px] text-slate-400 font-bold mt-1">Bé nhấn loa 🔊 để nghe cách đọc chuẩn và viết lại từ nhé!</span>
+            </div>
           </div>
-          <div className="overflow-x-auto rounded-xl border border-slate-100 shadow-sm">
-            <table className="w-full text-left border-collapse min-w-[400px]">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="p-2 sm:p-3 text-xs font-black text-slate-500 uppercase">Từ vựng</th>
-                  <th className="p-2 sm:p-3 text-xs font-black text-green-600 uppercase">IPA Chuẩn</th>
-                  <th className="p-2 sm:p-3 text-xs font-black text-red-500 uppercase">Bé đọc</th>
-                  <th className="p-2 sm:p-3 text-xs font-black text-indigo-400 uppercase">Mẹo cho bé</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {evaluation.ipaAnalysis.map((item, idx) => (
-                  <tr key={idx} className="hover:bg-indigo-50/20 transition-colors">
-                    <td className="p-2 sm:p-3 text-sm font-black text-slate-700">{item.word}</td>
-                    <td className="p-2 sm:p-3 text-sm sm:text-base font-serif font-bold text-green-600">{item.correctIpa}</td>
-                    <td className="p-2 sm:p-3 text-sm sm:text-base font-serif font-bold text-red-500">{item.studentIpa}</td>
-                    <td className="p-2 sm:p-3 text-xs text-slate-500 font-medium leading-relaxed">{item.tip}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            {evaluation.ipaAnalysis.map((item, idx) => (
+              <div key={idx} className="bg-red-50/40 rounded-2xl border-2 border-red-100 p-3 sm:p-4 flex flex-col justify-between space-y-2.5 hover:border-red-300 transition-all shadow-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base sm:text-lg font-black text-red-600 tracking-tight leading-none">{item.word}</span>
+                    <button 
+                      onClick={() => speakWithBrowser(item.word, level)}
+                      className="p-1.5 bg-white border border-red-200 rounded-lg text-red-500 hover:bg-red-100 active:scale-95 transition-all shadow-sm"
+                      title="Nghe phát âm chuẩn"
+                    >
+                      <Volume2 size={14} />
+                    </button>
+                  </div>
+                  <span className="text-[8px] sm:text-[9px] font-black uppercase bg-red-100 text-red-700 px-2 py-0.5 rounded-full shrink-0">Bé đọc sai</span>
+                </div>
+                
+                <div className="flex items-center gap-4 text-xs font-medium bg-white/70 p-2 rounded-xl border border-red-50/50">
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-black text-slate-400 uppercase leading-none mb-1">IPA Chuẩn</span>
+                    <span className="font-serif font-bold text-green-600 text-sm sm:text-base leading-none">{item.correctIpa}</span>
+                  </div>
+                  <div className="w-[2px] h-6 bg-red-100" />
+                  <div className="flex flex-col">
+                    <span className="text-[8px] font-black text-slate-400 uppercase leading-none mb-1">Bé đọc</span>
+                    <span className="font-serif font-bold text-red-500 text-sm sm:text-base leading-none">{item.studentIpa}</span>
+                  </div>
+                </div>
+
+                <div className="text-xs text-slate-600 font-bold leading-relaxed flex items-start gap-1.5 p-1 bg-red-100/10 rounded-lg">
+                  <span className="text-[10px] mt-0.5">💡</span>
+                  <span>{item.tip}</span>
+                </div>
+                
+                <div className="text-[8px] sm:text-[9px] font-black text-indigo-500/80 uppercase tracking-wider text-center border-t border-dashed border-red-200/50 pt-2 flex items-center justify-center gap-1">
+                  <span>📝</span>
+                  <span>Bé hãy viết lại từ này ra nháp 3 lần nhé!</span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

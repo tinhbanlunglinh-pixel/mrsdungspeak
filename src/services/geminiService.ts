@@ -67,11 +67,10 @@ const getFallbackChain = (): string[] => {
   return chain;
 };
 
-// TTS-specific models (only these support responseModalities: [AUDIO] with speechConfig)
+// TTS-specific models (using stable multimodal models supporting audio outputs)
 const TTS_MODELS = [
-  "gemini-3.1-flash-tts-preview",
-  "gemini-2.5-flash-preview-tts",
-  "gemini-2.5-pro-preview-tts",
+  "gemini-2.5-flash",
+  "gemini-2.0-flash",
 ];
 
 export interface VocabularyItem {
@@ -678,10 +677,10 @@ export interface EvaluationResult {
   missingContent?: string;
   criteriaScores?: {
     pronunciation: number;
-    stress: number;
-    intonation: number;
     fluency: number;
-    connectedSpeech: number;
+    vocabulary: number;
+    grammar: number;
+    interaction: number;
   };
   ipaAnalysis?: {
     word: string;
@@ -714,30 +713,32 @@ BƯỚC 0: KIỂM TRA ĐỘ HOÀN THÀNH VÀ TÍNH CHÍNH XÁC NỘI DUNG (ZERO 
   - "isComplete": false.
   - "score": 0 (Bắt buộc phải là 0 nếu thiếu nội dung).
   - "missingContent": Ghi rõ những cụm từ hoặc đoạn mà học sinh đã bỏ sót hoặc đọc sai hoàn toàn.
-  - "feedback": Mrs. Dung nhắn nhủ: "Ôi tình yêu của cô, con đã đọc rất cố gắng rồi nhưng bài này con cần đọc ĐỦ và ĐÚNG hết tất cả các chữ thì cô mới chấm điểm được. Con hãy xem phần 'Cần cải thiện' để biết mình thiếu chỗ nào và đọc lại cho cô nghe nhé!"
+  - "feedback": "Ôi tình yêu của cô, con đã đọc rất cố gắng rồi nhưng bài này con cần đọc ĐỦ và ĐÚNG hết tất cả các chữ thì cô mới chấm điểm được. Con hãy xem phần 'Cần cải thiện' để biết mình thiếu chỗ nào và đọc lại cho cô nghe nhé!"
+  - Đối với "criteriaScores", vẫn chấm điểm chi tiết của từng tiêu chí để học sinh biết mình sai ở đâu.
 
-🚨 NẾU ĐÃ ĐỌC ĐỦ VÀ ĐÚNG 100% NỘI DUNG:
-1. Chấm điểm từng tiêu chí (thang 10):
-   - Pronunciation Accuracy (IPA chuẩn xác).
-   - Word Stress (Trọng âm từ).
-   - Intonation (Ngữ điệu lên xuống).
-   - Fluency (Tốc độ và sự trôi chảy).
-   - Connected Speech (Nối âm, nuốt âm đặc trưng người bản ngữ).
+🚨 QUY TẮC CHẤM ĐIỂM THEO KHUNG CEFR MỚI (THANG ĐIỂM 10):
+Bạn phải chấm điểm dựa trên 5 tiêu chí sau, mỗi tiêu chí tối đa 2.0 điểm (lẻ đến 0.1 điểm, ví dụ: 1.5, 1.8, 2.0):
+1. pronunciation (Phát âm): Tối đa 2.0 điểm. Đánh giá độ chính xác của nguyên âm, phụ âm, âm đuôi, âm nối, âm nuốt.
+2. fluency (Trôi chảy): Tối đa 2.0 điểm. Đánh giá tốc độ nói phù hợp trình độ, độ ngập ngừng, nhịp điệu và ngắt nghỉ đúng câu.
+3. vocabulary (Từ vựng): Tối đa 2.0 điểm. Đánh giá khả năng nhận diện và đọc đúng từ vựng trong văn cảnh.
+4. grammar (Ngữ pháp): Tối đa 2.0 điểm. Đánh giá khả năng duy trì ngữ pháp của câu khi đọc (như chia động từ số ít/nhiều, phát âm âm đuôi s/es/ed).
+5. interaction (Tương tác / Hoàn thành nhiệm vụ): Tối đa 2.0 điểm. Đánh giá tiến trình hoàn thành và nỗ lực đọc bài.
 
-2. Cách tính Tổng điểm (Score) - LƯU Ý ĐẶC BIỆT:
-   - ĐIỂM CƠ BẢN: Nếu học sinh đọc ĐỦ HẾT BÀI và phát âm cơ bản không bị sai lệch nghĩa, mức điểm mặc định là 7.0/10.
-   - ĐIỂM CỘNG THÊM: Nếu học sinh làm tốt các yếu tố nâng cao (Trọng âm, Ngữ điệu, Trôi chảy, Nối âm), hãy cộng thêm điểm từ mức 7.0 này lên tối đa 10.0.
-   - Các điểm tiêu chí thành phần (criteriaScores) vẫn chấm trên thang 10, nhưng Tổng điểm (score) phải bám sát mốc cơ bản 7.0 này.
-   - Xếp loại CEFR (A1-C2) tương ứng với tổng điểm và trình độ thể hiện.
+- Tổng điểm (score) bằng tổng của 5 tiêu chí trên (Tổng điểm = pronunciation + fluency + vocabulary + grammar + interaction). Tối đa là 10.0 điểm.
+- Xếp loại CEFR (A1, A2, B1, B2) tương ứng với tổng điểm và trình độ thể hiện của học sinh.
 
-3. Phân tích lỗi sai cụ thể (IPA Analysis - BẮT BUỘC):
-   - Chỉ ra 3-5 từ học sinh phát âm sai nhất. Bắt buộc cung cấp mảng ipaAnalysis kể cả khi chỉ sai một lỗi nhỏ.
-   - Ghi rõ IPA chuẩn (correctIpa) vs IPA học sinh thực tế phát âm (studentIpa).
-   - Gợi ý cách sửa (tip): Khẩu hình miệng, vị trí lưỡi, cách bật hơi.
+🚨 PHÂN TÍCH TỪ PHÁT ÂM SAI (IPA Analysis):
+- Bạn cần đối chiếu kỹ audio và bài đọc để phát hiện các từ phát âm sai.
+- Đối với mỗi từ phát âm sai, hãy phân tích chi tiết trong mảng ipaAnalysis:
+  - "word": Từ tiếng Anh viết đúng (ví dụ: "cat").
+  - "correctIpa": Phiên âm IPA chuẩn quốc tế của từ đó (ví dụ: /kæt/).
+  - "studentIpa": Phiên âm IPA phản ánh lỗi sai thực tế của học sinh (ví dụ: /kɑːt/ hoặc /kæt/ thiếu âm đuôi).
+  - "tip": Ghi rõ lỗi sai của bé (ví dụ: "Con quên bật âm đuôi /t/ rồi nè. Hãy nhớ viết lại từ này 3 lần và đọc to lên nhé!").
 
-PHONG CÁCH PHẢN HỒI (Mrs. Dung):
-- Luôn bắt đầu bằng lời chào ấm áp: "Chào con, cô Dung đây!..."
-- Phản hồi phải mang tính kiến tạo, chỉ rõ lỗi để bé sửa.
+🚨 PHONG CÁCH PHẢN HỒI (Mrs. Dung):
+- Luôn viết nhận xét feedback bằng tiếng Việt chi tiết. Tuyệt đối không được bỏ trống hoặc trả về chuỗi rỗng.
+- Nhận xét phải bắt đầu bằng lời chào ấm áp: "Chào con, cô Dung đây!..."
+- Phản hồi phải mang tính động viên, kiến tạo, chỉ rõ lỗi để bé sửa.
 
 Output định dạng JSON:
 {
@@ -745,7 +746,7 @@ Output định dạng JSON:
   "missingContent": string,
   "score": number,
   "cefrLevel": string,
-  "criteriaScores": { "pronunciation": number, "stress": number, "intonation": number, "fluency": number, "connectedSpeech": number },
+  "criteriaScores": { "pronunciation": number, "fluency": number, "vocabulary": number, "grammar": number, "interaction": number },
   "feedback": string,
   "ipaAnalysis": [ { "word": string, "correctIpa": string, "studentIpa": string, "tip": string } ],
   "standardSentences": string[],
@@ -785,10 +786,10 @@ Output định dạng JSON:
               type: Type.OBJECT,
               properties: {
                 pronunciation: { type: Type.NUMBER },
-                stress: { type: Type.NUMBER },
-                intonation: { type: Type.NUMBER },
                 fluency: { type: Type.NUMBER },
-                connectedSpeech: { type: Type.NUMBER },
+                vocabulary: { type: Type.NUMBER },
+                grammar: { type: Type.NUMBER },
+                interaction: { type: Type.NUMBER },
               }
             },
             feedback: { type: Type.STRING },
@@ -831,12 +832,24 @@ Output định dạng JSON:
       .replace(/\s*```$/i, '')
       .trim();
     const result = JSON.parse(cleanText);
+    const score = result.isComplete === false ? 0 : (result.score || 0);
+    
+    // Defensive programming: ensure criteriaScores contains all 5 required CEFR sub-scores
+    const rawScores = result.criteriaScores || {};
+    const criteriaScores = {
+      pronunciation: typeof rawScores.pronunciation === 'number' ? rawScores.pronunciation : (score / 5),
+      fluency: typeof rawScores.fluency === 'number' ? rawScores.fluency : (score / 5),
+      vocabulary: typeof rawScores.vocabulary === 'number' ? rawScores.vocabulary : (score / 5),
+      grammar: typeof rawScores.grammar === 'number' ? rawScores.grammar : (score / 5),
+      interaction: typeof rawScores.interaction === 'number' ? rawScores.interaction : (score / 5)
+    };
+
     return {
       isComplete: result.isComplete ?? true,
       missingContent: result.missingContent || "",
-      score: result.isComplete === false ? 0 : (result.score || 0),
+      score: score,
       cefrLevel: result.cefrLevel || "A1",
-      criteriaScores: result.criteriaScores,
+      criteriaScores: criteriaScores,
       feedback: result.feedback || "Không thể đánh giá.",
       ipaAnalysis: result.ipaAnalysis || [],
       standardSentences: result.standardSentences || [],

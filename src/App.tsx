@@ -104,7 +104,7 @@ export default function App() {
       const audioUrl = await (text ? generateAudio(text, level, voice).catch(err => {
         console.error("Background audio generation failed", err);
         const msg = err?.message || "";
-        if (msg === "QUOTA_EXCEEDED" || msg === "INVALID_KEY") throw err;
+        if (msg.startsWith("QUOTA_EXCEEDED") || msg.startsWith("INVALID_KEY")) throw err;
         return null;
       }) : Promise.resolve(null));
       
@@ -351,6 +351,7 @@ export default function App() {
                       {/* Speech Evaluator */}
                       <SpeechEvaluator
                         readingText={readingText}
+                        level={level}
                         isRecording={recorder.isRecording}
                         isEvaluating={recorder.isEvaluating}
                         evaluation={recorder.evaluation}
