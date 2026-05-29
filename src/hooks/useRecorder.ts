@@ -58,21 +58,21 @@ export function useRecorder(
           console.error("Evaluation error:", err);
           const errorMessage = err?.message || String(err);
           
-          if (errorMessage === "QUOTA_EXCEEDED") {
-            currentSetError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.");
-          } else if (errorMessage === "INVALID_KEY") {
-            currentSetError("API Key không hợp lệ. Vui lòng kiểm tra lại cấu hình trong 'Cài đặt API Key'.");
+          if (errorMessage.startsWith("QUOTA_EXCEEDED")) {
+            currentSetError(`Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.\n\nChi tiết lỗi từ Google: ${errorMessage}`);
+          } else if (errorMessage.startsWith("INVALID_KEY")) {
+            currentSetError(`API Key không hợp lệ. Vui lòng kiểm tra lại cấu hình trong 'Cài đặt API Key'.\n\nChi tiết lỗi từ Google: ${errorMessage}`);
           } else {
             let treatedAsQuota = false;
             try {
               const parsedError = JSON.parse(errorMessage);
               if (parsedError?.error?.code === 429 || parsedError?.status === 429) {
-                currentSetError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+                currentSetError(`Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.\n\nChi tiết lỗi: ${errorMessage}`);
                 treatedAsQuota = true;
               }
             } catch (e) { 
               if (errorMessage.includes('"code":429') || errorMessage.includes('"code": 429')) {
-                currentSetError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+                currentSetError(`Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.\n\nChi tiết lỗi: ${errorMessage}`);
                 treatedAsQuota = true;
               }
             }

@@ -59,11 +59,20 @@ function handleApiError(err: any): never {
   const errorMsg = err?.message || String(err);
   console.error("Gemini API Error:", err);
   
-  if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("resource_exhausted")) {
-    throw new Error("QUOTA_EXCEEDED");
+  const lowerMsg = errorMsg.toLowerCase();
+  if (lowerMsg.includes("429") || lowerMsg.includes("quota") || lowerMsg.includes("resource_exhausted")) {
+    throw new Error(`QUOTA_EXCEEDED: ${errorMsg}`);
   }
-  if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.toLowerCase().includes("permission denied")) {
-    throw new Error("INVALID_KEY");
+  if (
+    lowerMsg.includes("403") || 
+    lowerMsg.includes("400") || 
+    lowerMsg.includes("api key") || 
+    lowerMsg.includes("api_key") || 
+    lowerMsg.includes("api-key") || 
+    lowerMsg.includes("permission denied") ||
+    lowerMsg.includes("invalid_key")
+  ) {
+    throw new Error(`INVALID_KEY: ${errorMsg}`);
   }
   throw err;
 }
@@ -96,15 +105,25 @@ async function generateWithFallback(
       const errorMsg = err?.message || String(err);
       errors.push(`[${model}]: ${errorMsg}`);
       
-      // For quota/rate limit errors, try next model first
-      if (errorMsg.includes("429") || errorMsg.toLowerCase().includes("quota") || errorMsg.toLowerCase().includes("resource_exhausted")) {
-        console.warn(`Model ${model} hit quota limit, trying next model...`);
-        continue;
+      const lowerMsg = errorMsg.toLowerCase();
+      
+      // Don't fallback for auth/bad key errors — they'll fail on all models
+      if (
+        lowerMsg.includes("403") || 
+        lowerMsg.includes("400") || 
+        lowerMsg.includes("api key") || 
+        lowerMsg.includes("api_key") || 
+        lowerMsg.includes("api-key") || 
+        lowerMsg.includes("permission denied") ||
+        lowerMsg.includes("invalid_key")
+      ) {
+        throw new Error(`INVALID_KEY: ${errorMsg}`);
       }
       
-      // Don't fallback for auth errors — they'll fail on all models
-      if (errorMsg.includes("403") || errorMsg.toLowerCase().includes("api key") || errorMsg.toLowerCase().includes("permission denied")) {
-        throw new Error("INVALID_KEY");
+      // For quota/rate limit errors, try next model first
+      if (lowerMsg.includes("429") || lowerMsg.includes("quota") || lowerMsg.includes("resource_exhausted")) {
+        console.warn(`Model ${model} hit quota limit, trying next model...`);
+        continue;
       }
       
       // For other errors (model not found, etc.), try next model
@@ -474,12 +493,21 @@ async function geminiTTS(text: string, level: EnglishLevel, voice: string = "Kor
       const msg = err?.message || String(err);
       console.warn(`[TTS] ${model} failed: ${msg.substring(0, 200)}`);
       
+      const lowerMsg = msg.toLowerCase();
       // Don't retry on auth errors — they'll fail on all models
-      if (msg.includes("403") || msg.toLowerCase().includes("api key") || msg.toLowerCase().includes("permission denied")) {
-        throw new Error("INVALID_KEY");
+      if (
+        lowerMsg.includes("403") || 
+        lowerMsg.includes("400") || 
+        lowerMsg.includes("api key") || 
+        lowerMsg.includes("api_key") || 
+        lowerMsg.includes("api-key") || 
+        lowerMsg.includes("permission denied") ||
+        lowerMsg.includes("invalid_key")
+      ) {
+        throw new Error(`INVALID_KEY: ${msg}`);
       }
       // For quota/rate limit, try next model
-      if (msg.includes("429") || msg.toLowerCase().includes("quota") || msg.toLowerCase().includes("resource_exhausted")) {
+      if (lowerMsg.includes("429") || lowerMsg.toLowerCase().includes("quota") || lowerMsg.toLowerCase().includes("resource_exhausted")) {
         console.warn(`[TTS] ${model} hit quota/rate limit, trying next model...`);
         continue;
       }

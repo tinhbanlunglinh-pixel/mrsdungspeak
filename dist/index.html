@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ENGLISH MRS. DUNG</title>
+    <script>
+      // Global error handler to overlay runtime crashes directly on screen
+      window.onerror = function(message, source, lineno, colno, error) {
+        // Ignore chrome/firefox extension errors
+        if (source && (source.startsWith('chrome-extension://') || source.startsWith('moz-extension://') || source.includes('injectScript.js'))) {
+          return false;
+        }
+        const show = function() {
+          if (document.getElementById('runtime-error-overlay')) return;
+          const errorDiv = document.createElement('div');
+          errorDiv.id = 'runtime-error-overlay';
+          errorDiv.style.position = 'fixed';
+          errorDiv.style.top = '0';
+          errorDiv.style.left = '0';
+          errorDiv.style.width = '100%';
+          errorDiv.style.backgroundColor = '#fee2e2';
+          errorDiv.style.color = '#991b1b';
+          errorDiv.style.padding = '16px';
+          errorDiv.style.borderBottom = '4px solid #ef4444';
+          errorDiv.style.zIndex = '999999';
+          errorDiv.style.fontFamily = 'monospace';
+          errorDiv.style.whiteSpace = 'pre-wrap';
+          errorDiv.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+          errorDiv.innerHTML = '<strong>[Runtime Error]</strong> ' + message + '<br/>at ' + source + ':' + lineno + ':' + colno + (error && error.stack ? '<br/><br/>' + error.stack : '');
+          document.body.appendChild(errorDiv);
+        };
+        if (document.body) show();
+        else window.addEventListener('DOMContentLoaded', show);
+        return false;
+      };
+
+      window.onunhandledrejection = function(event) {
+        const reason = event.reason;
+        // Ignore extension promise rejections
+        if (reason && reason.stack && (reason.stack.includes('chrome-extension://') || reason.stack.includes('moz-extension://'))) {
+          return;
+        }
+        const show = function() {
+          if (document.getElementById('promise-error-overlay')) return;
+          const errorDiv = document.createElement('div');
+          errorDiv.id = 'promise-error-overlay';
+          errorDiv.style.position = 'fixed';
+          errorDiv.style.top = '0';
+          errorDiv.style.left = '0';
+          errorDiv.style.width = '100%';
+          errorDiv.style.backgroundColor = '#ffedd5';
+          errorDiv.style.color = '#c2410c';
+          errorDiv.style.padding = '16px';
+          errorDiv.style.borderBottom = '4px solid #f97316';
+          errorDiv.style.zIndex = '999999';
+          errorDiv.style.fontFamily = 'monospace';
+          errorDiv.style.whiteSpace = 'pre-wrap';
+          errorDiv.style.boxShadow = '0 10px 15px -3px rgba(0,0,0,0.1)';
+          const reason = event.reason;
+          errorDiv.innerHTML = '<strong>[Unhandled Promise Rejection]</strong> ' + (reason && reason.message ? reason.message : reason) + (reason && reason.stack ? '<br/><br/>' + reason.stack : '');
+          document.body.appendChild(errorDiv);
+        };
+        if (document.body) show();
+        else window.addEventListener('DOMContentLoaded', show);
+      };
+
+      // Mock process object for libraries that expect Node globals
+      window.process = window.process || {
+        env: {
+          NODE_ENV: 'production'
+        },
+        version: 'v18.0.0',
+        versions: {
+          node: '18.0.0'
+        },
+        nextTick: function(cb) {
+          setTimeout(cb, 0);
+        },
+        exit: function() {},
+        stderr: {
+          write: function() {}
+        },
+        emit: function() {}
+      };
+    </script>
+    <script type="module" crossorigin src="/assets/index-CyYVrrWn.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-U-EOzmy0.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
+

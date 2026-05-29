@@ -132,25 +132,25 @@ export default function App() {
     } catch (err: any) {
       console.error(err);
       const errorMessage = err?.message || String(err);
-      if (errorMessage === "QUOTA_EXCEEDED") {
-        setError("Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.");
-      } else if (errorMessage === "INVALID_KEY") {
-        setError("API Key không hợp lệ hoặc đã bị vô hiệu hóa. Vui lòng kiểm tra lại trong phần 'Cài đặt API Key'.");
+      if (errorMessage.startsWith("QUOTA_EXCEEDED")) {
+        setError(`Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.\n\nChi tiết lỗi từ Google: ${errorMessage}`);
+      } else if (errorMessage.startsWith("INVALID_KEY")) {
+        setError(`API Key không hợp lệ hoặc đã bị vô hiệu hóa. Vui lòng kiểm tra lại trong phần 'Cài đặt API Key'.\n\nChi tiết lỗi từ Google: ${errorMessage}`);
       } else if (errorMessage.includes("safety") || errorMessage.includes("Safety")) {
-        setError("Nội dung hoặc hình ảnh bị chặn bởi bộ lọc an toàn. Vui lòng thử chủ đề khác.");
+        setError(`Nội dung hoặc hình ảnh bị chặn bởi bộ lọc an toàn. Vui lòng thử chủ đề khác.\n\nChi tiết lỗi: ${errorMessage}`);
       } else if (errorMessage.includes("parsing") || errorMessage.includes("parse")) {
-        setError("Lỗi xử lý dữ liệu từ AI. Vui lòng thử lại.");
+        setError(`Lỗi xử lý dữ liệu từ AI. Vui lòng thử lại.\n\nChi tiết lỗi: ${errorMessage}`);
       } else {
         let treatedAsQuota = false;
         try {
           const parsedError = JSON.parse(errorMessage);
           if (parsedError?.error?.code === 429 || parsedError?.status === 429) {
-            setError("Bạn đã hết hạn mức sử dụng (Quota). Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+            setError(`Bạn đã hết hạn mức sử dụng (Quota). Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.\n\nChi tiết lỗi: ${errorMessage}`);
             treatedAsQuota = true;
           }
         } catch (e) { 
           if (errorMessage.includes('"code":429') || errorMessage.includes('"code": 429')) {
-            setError("Bạn đã hết hạn mức sử dụng (Quota). Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.");
+            setError(`Bạn đã hết hạn mức sử dụng (Quota). Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới.\n\nChi tiết lỗi: ${errorMessage}`);
             treatedAsQuota = true;
           }
         }
