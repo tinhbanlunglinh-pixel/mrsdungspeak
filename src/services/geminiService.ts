@@ -1,5 +1,18 @@
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 
+/**
+ * Timeout wrapper — rejects if the promise doesn't resolve within `ms` milliseconds.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout>;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`TIMEOUT: ${label} — không phản hồi sau ${ms / 1000}s`)), ms);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+}
+
+const REQUEST_TIMEOUT_MS = 30_000; // 30 seconds per model attempt
+
 const getApiKey = () => {
   // Try to get from localStorage first (for client-managed keys)
   if (typeof window !== "undefined") {
@@ -17,7 +30,10 @@ const getApiKey = () => {
 
 // We use a function to get the instance so it can pick up changes in localStorage
 const getAI = () => {
-  return new GoogleGenAI({ apiKey: getApiKey() });
+  return new GoogleGenAI({
+    apiKey: getApiKey(),
+    httpOptions: { timeout: REQUEST_TIMEOUT_MS },
+  });
 };
 
 // Model fallback chain per AI_INSTRUCTIONS.md
@@ -88,17 +104,27 @@ async function generateWithFallback(
     config: any;
   }
 ): Promise<any> {
+  // Validate API key before making any requests
+  const currentKey = getApiKey();
+  if (!currentKey) {
+    throw new Error("INVALID_KEY: API Key chưa được cài đặt. Vui lòng nhập API Key trong phần 'Cài đặt API Key'.");
+  }
+
   const errors: string[] = [];
   let lastError: any = null;
 
   for (const model of models) {
     try {
       console.log(`Trying model: ${model}`);
-      const response = await getAI().models.generateContent({
-        model,
-        contents: params.contents,
-        config: params.config,
-      });
+      const response = await withTimeout(
+        getAI().models.generateContent({
+          model,
+          contents: params.contents,
+          config: params.config,
+        }),
+        REQUEST_TIMEOUT_MS,
+        model
+      );
       return response;
     } catch (err: any) {
       lastError = err;
@@ -225,6 +251,7 @@ export const generateContent = async (
     contents: [{ role: "user", parts }],
     config: { 
       systemInstruction,
+      maxOutputTokens: 8192,
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -256,13 +283,59 @@ export const generateContent = async (
 
   try {
     // Clean the response text from markdown block wrappers if present
-    const cleanText = response.text
+    let cleanText = response.text
       .replace(/^```json\s*/i, '')
       .replace(/^```\s*/, '')
       .replace(/\s*```$/i, '')
       .trim();
+    
+    // Attempt to parse JSON, with repair for truncated responses
+    let result: any;
+    try {
+      result = JSON.parse(cleanText);
+    } catch (parseErr) {
+      console.warn("Initial JSON parse failed, attempting repair...", parseErr);
+      // Try to repair truncated JSON by closing open structures
+      let repaired = cleanText;
+      // Remove any trailing incomplete string (e.g. "word": "cat_null_nul...)
+      repaired = repaired.replace(/,\s*"[^"]*":\s*"[^"]*$/,'');
+      repaired = repaired.replace(/,\s*"[^"]*":\s*$/,'');
+      repaired = repaired.replace(/,\s*\{[^}]*$/,''); // remove last incomplete object in array
+      // Count and close open brackets/braces
+      const opens = (repaired.match(/\[/g) || []).length;
+      const closes = (repaired.match(/\]/g) || []).length;
+      const openBraces = (repaired.match(/\{/g) || []).length;
+      const closeBraces = (repaired.match(/\}/g) || []).length;
+      for (let i = 0; i < openBraces - closeBraces; i++) repaired += '}';
+      for (let i = 0; i < opens - closes; i++) repaired += ']';
+      // Ensure it ends properly
+      if (!repaired.endsWith('}')) repaired += '}';
       
-    const result = JSON.parse(cleanText);
+      try {
+        result = JSON.parse(repaired);
+        console.log("JSON repair successful!");
+      } catch (repairErr) {
+        // Last resort: try to extract fields with regex
+        console.warn("JSON repair failed, trying regex extraction...");
+        const extractField = (field: string) => {
+          const regex = new RegExp(`"${field}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`);
+          const match = cleanText.match(regex);
+          return match ? match[1].replace(/\\"/g, '"').replace(/\\n/g, '\n') : "";
+        };
+        result = {
+          prompt: extractField("prompt"),
+          readingText: extractField("readingText"),
+          topicName: extractField("topicName"),
+          translation: extractField("translation"),
+          vocabulary: []
+        };
+        if (!result.readingText) {
+          throw new Error(`Failed to parse lesson content. Please try again. Parse error: ${(parseErr as any)?.message || String(parseErr)}`);
+        }
+        console.log("Regex extraction recovered partial data");
+      }
+    }
+
     // AI đôi khi vẫn tự cắt ngắn văn bản, nên nếu là văn bản (không phải ảnh), 
     // ta lấy trực tiếp input của user làm readingText.
     let finalReadingText = result.readingText || "";
@@ -275,11 +348,11 @@ export const generateContent = async (
       readingText: finalReadingText,
       topicName: result.topicName || (input.length < 50 ? input : "English Lesson"),
       translation: result.translation || "",
-      vocabulary: result.vocabulary || []
+      vocabulary: Array.isArray(result.vocabulary) ? result.vocabulary : []
     };
   } catch (e: any) {
     console.error("Failed to parse JSON response:", response.text, e);
-    throw new Error(`Failed to parse lesson content. Please try again. Raw response: "${response.text || ""}". Parse error: ${e?.message || String(e)}`);
+    throw new Error(`Failed to parse lesson content. Please try again. Raw response: "${(response.text || "").substring(0, 300)}". Parse error: ${e?.message || String(e)}`);
   }
 };
 
@@ -461,20 +534,24 @@ async function geminiTTS(text: string, level: EnglishLevel, voice: string = "Kor
     try {
       console.log(`[TTS] Trying model: ${model}, voice: ${voice}`);
       
-      const response = await getAI().models.generateContent({
-        model,
-        contents: [{ 
-          parts: [{ text: prompt }] 
-        }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: voice as any },
+      const response = await withTimeout(
+        getAI().models.generateContent({
+          model,
+          contents: [{ 
+            parts: [{ text: prompt }] 
+          }],
+          config: {
+            responseModalities: [Modality.AUDIO],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: voice as any },
+              },
             },
           },
-        },
-      });
+        }),
+        REQUEST_TIMEOUT_MS,
+        `TTS ${model}`
+      );
 
       // Extract audio data from response
       const candidates = response?.candidates;
@@ -672,6 +749,7 @@ Output định dạng JSON:
       ],
       config: { 
         systemInstruction,
+        maxOutputTokens: 8192,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,

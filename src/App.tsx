@@ -136,6 +136,8 @@ export default function App() {
         setError(`Bạn đã hết hạn mức sử dụng (Quota) của API Key này. Vui lòng nhấn vào nút 'Cài đặt API Key' để đổi key mới hoặc thử lại sau.\n\nChi tiết lỗi từ Google: ${errorMessage}`);
       } else if (errorMessage.startsWith("INVALID_KEY")) {
         setError(`API Key không hợp lệ hoặc đã bị vô hiệu hóa. Vui lòng kiểm tra lại trong phần 'Cài đặt API Key'.\n\nChi tiết lỗi từ Google: ${errorMessage}`);
+      } else if (errorMessage.includes("TIMEOUT") || errorMessage.includes("All models failed")) {
+        setError(`Không thể kết nối đến AI. Vui lòng kiểm tra:\n• Kết nối mạng internet\n• API Key còn hiệu lực\n• Thử lại sau vài giây\n\nChi tiết: ${errorMessage}`);
       } else if (errorMessage.includes("safety") || errorMessage.includes("Safety")) {
         setError(`Nội dung hoặc hình ảnh bị chặn bởi bộ lọc an toàn. Vui lòng thử chủ đề khác.\n\nChi tiết lỗi: ${errorMessage}`);
       } else if (errorMessage.includes("parsing") || errorMessage.includes("parse")) {
