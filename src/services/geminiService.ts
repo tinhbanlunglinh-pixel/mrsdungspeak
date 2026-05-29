@@ -453,7 +453,7 @@ export const generateImage = async (
  */
 export const BROWSER_TTS_SIGNAL = "BROWSER_TTS";
 
-export function speakWithBrowser(text: string, level: EnglishLevel): void {
+export function speakWithBrowser(text: string, level: EnglishLevel, customRate?: number): void {
   if (!('speechSynthesis' in window)) return;
 
   // Stop any ongoing speech
@@ -462,13 +462,17 @@ export function speakWithBrowser(text: string, level: EnglishLevel): void {
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
 
-  // Adjust rate based on level
-  if (["Starters", "Movers"].includes(level)) {
-    utterance.rate = 0.8;
-  } else if (["Flyers", "A1"].includes(level)) {
-    utterance.rate = 0.9;
+  // Adjust rate based on customRate or level
+  if (customRate) {
+    utterance.rate = customRate;
   } else {
-    utterance.rate = 1.0;
+    if (["Starters", "Movers"].includes(level)) {
+      utterance.rate = 0.8;
+    } else if (["Flyers", "A1"].includes(level)) {
+      utterance.rate = 0.9;
+    } else {
+      utterance.rate = 1.0;
+    }
   }
 
   utterance.pitch = 1.0;
@@ -844,13 +848,19 @@ Output định dạng JSON:
       interaction: typeof rawScores.interaction === 'number' ? rawScores.interaction : (score / 5)
     };
 
+    // Ensure friendly feedback from Mrs. Dung if incomplete or empty
+    const defaultFeedback = (result.isComplete === false)
+      ? "Ôi tình yêu của cô, con đã đọc rất cố gắng rồi nhưng bài này con cần đọc ĐỦ và ĐÚNG hết tất cả các chữ thì cô mới chấm điểm được. Con hãy xem phần 'Phần thiếu' để biết mình thiếu chỗ nào và đọc lại cho cô nghe nhé!"
+      : "Không thể đánh giá.";
+    const feedback = (result.feedback && result.feedback.trim() !== "") ? result.feedback : defaultFeedback;
+
     return {
       isComplete: result.isComplete ?? true,
       missingContent: result.missingContent || "",
       score: score,
       cefrLevel: result.cefrLevel || "A1",
       criteriaScores: criteriaScores,
-      feedback: result.feedback || "Không thể đánh giá.",
+      feedback: feedback,
       ipaAnalysis: result.ipaAnalysis || [],
       standardSentences: result.standardSentences || [],
       personalizedExercises: result.personalizedExercises || [],
