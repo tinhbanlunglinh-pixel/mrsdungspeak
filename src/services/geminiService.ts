@@ -739,10 +739,11 @@ Tổng = 5 tiêu chí. Xếp loại CEFR tương ứng.
 - Ví dụ tốt: "Phát âm rõ ràng, đặc biệt các phụ âm đầu"
 - Ví dụ XẤU (quá dài): "Con đã đọc đủ 100% nội dung bài, không bỏ sót bất kỳ từ nào, kể cả các mạo từ và giới từ nhỏ."
 
-📌 "improvements" (tối đa 2-3 mục, mỗi mục 1 câu ngắn ≤15 từ):
-- Chỉ nêu điểm yếu CỤ THỂ cần sửa, không giải thích dài.
+📌 "improvements" (BẮT BUỘC — tối thiểu 1, tối đa 3 mục, mỗi mục ≤15 từ):
+- LUÔN LUÔN phải có ít nhất 1 mục. Dù học sinh đọc tốt, vẫn phải có gợi ý cải thiện (ví dụ: ngữ điệu, stress, âm nối, tốc độ...).
+- Chỉ nêu điểm CỤ THỂ cần sửa, không giải thích dài.
 - Ví dụ tốt: "Kéo dài nguyên âm /ɔː/ trong small, ball"
-- Ví dụ XẤU: "Cần chú ý kéo dài các nguyên âm dài hơn, đặc biệt là âm /ɔː/ trong các từ như small và ball để nghe tự nhiên hơn."
+- Ví dụ tốt khi đọc giỏi: "Luyện thêm ngữ điệu lên-xuống tự nhiên hơn"
 
 📌 "ipaAnalysis" (chỉ liệt kê từ phát âm SAI, tối đa 4 từ):
 - "tip": Tối đa 1 câu ngắn gọn, chỉ rõ lỗi và cách sửa.

@@ -187,11 +187,15 @@ const CompleteResult: React.FC<{
             <div className="text-xs font-black uppercase tracking-wider">Cần chú ý thêm</div>
           </div>
           <div className="space-y-2">
-            {evaluation.improvements.map((imp, i) => (
+            {evaluation.improvements.length > 0 ? evaluation.improvements.map((imp, i) => (
               <div key={i} className="text-sm font-medium text-slate-700 flex items-start gap-2 bg-orange-50/30 p-2 rounded-lg">
                 <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-1.5 shrink-0" /> {imp}
               </div>
-            ))}
+            )) : (
+              <div className="text-sm font-medium text-slate-700 flex items-start gap-2 bg-orange-50/30 p-2 rounded-lg">
+                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-1.5 shrink-0" /> Luyện thêm ngữ điệu lên-xuống và âm nối giữa các từ để tự nhiên hơn
+              </div>
+            )}
           </div>
         </div>
       </div>
