@@ -124,7 +124,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
           <div className="mt-6 pt-5" style={{ borderTop: '3px dashed #e2e8f0' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><Target size={18} /></div>
-              <h3 className="text-base font-black uppercase tracking-widest" style={{ color: '#0369a1' }}>Word Bank</h3>
+              <h3 className="text-base font-black uppercase tracking-widest" style={{ color: '#0369a1' }}>New Words</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {vocabulary.map((item, idx) => (

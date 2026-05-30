@@ -228,7 +228,12 @@ export const generateContent = async (
   3. A short, catchy, and exciting title/topic name for this lesson (max 5 words). EVEN IN 'useInput' MODE, you must create a concise title based on the content if the input was long text.
   4. A Vietnamese translation of the reading passage. ${mode === 'useInput' ? 'Translate the COMPLETE text, not a summary.' : ''}
   5. A list of 3-5 key vocabulary words from the text with their IPA pronunciation and a SHORT, CONCISE Vietnamese meaning.
-  CRITICAL: The "meaning" field MUST be in Vietnamese and MUST be very brief (e.g. "con mèo" instead of a long explanation).
+   CRITICAL VOCABULARY RULES:
+   - The "meaning" field MUST be in Vietnamese and MUST be very brief (e.g. "con mèo" instead of a long explanation).
+   - Each vocabulary word MUST be UNIQUE — NEVER repeat the same word or its variations (e.g. do NOT list both "dog" and "doggy" or "doggo").
+   - Each word MUST actually appear in the reading passage.
+   - Pick the most EDUCATIONAL and USEFUL words for the student's level.
+   - NEVER generate filler words, nonsense words, or slang variations of the same root word.
   
   CRITICAL WORD COUNT LIMITS FOR READING PASSAGE (ONLY for 'generate' mode, IGNORE for 'useInput' mode):
   You MUST strictly adhere to the following word count limits based on the selected level:
@@ -365,12 +370,24 @@ export const generateContent = async (
       finalReadingText = input;
     }
 
+    // Validate and deduplicate vocabulary to prevent AI hallucinations (repeated/nonsensical words)
+    const rawVocab: VocabularyItem[] = Array.isArray(result.vocabulary) ? result.vocabulary : [];
+    const seenWords = new Set<string>();
+    const cleanedVocabulary = rawVocab.filter(item => {
+      if (!item || !item.word || typeof item.word !== 'string') return false;
+      const normalizedWord = item.word.trim().toLowerCase();
+      // Skip empty words, single characters, or already seen words
+      if (normalizedWord.length < 2 || seenWords.has(normalizedWord)) return false;
+      seenWords.add(normalizedWord);
+      return true;
+    }).slice(0, 6); // Max 6 vocabulary items
+
     return {
       prompt: result.prompt || "",
       readingText: finalReadingText,
       topicName: result.topicName || (input.length < 50 ? input : "English Lesson"),
       translation: result.translation || "",
-      vocabulary: Array.isArray(result.vocabulary) ? result.vocabulary : []
+      vocabulary: cleanedVocabulary
     };
   } catch (e: any) {
     console.error("Failed to parse JSON response:", response.text, e);
@@ -850,7 +867,7 @@ Output định dạng JSON:
     // Ensure friendly feedback from Mrs. Dung if incomplete or empty
     const defaultFeedback = (result.isComplete === false)
       ? "Ôi tình yêu của cô, con đã đọc rất cố gắng rồi nhưng bài này con cần đọc ĐỦ và ĐÚNG hết tất cả các chữ thì cô mới chấm điểm được. Con hãy xem phần 'Phần thiếu' để biết mình thiếu chỗ nào và đọc lại cho cô nghe nhé!"
-      : "Không thể đánh giá.";
+      : "Chào con, cô Dung đây! Cô đã nghe con đọc bài rồi. Nhìn chung, con đã rất cố gắng và cô thấy con có tiến bộ đấy! Con hãy tiếp tục luyện đọc mỗi ngày, chú ý phát âm rõ ràng từng từ, đặc biệt là các âm cuối và ngữ điệu câu nhé. Cô tin con sẽ ngày càng giỏi hơn! 💚";
     const feedback = (result.feedback && result.feedback.trim() !== "") ? result.feedback : defaultFeedback;
 
     return {
