@@ -478,17 +478,11 @@ export function speakWithBrowser(text: string, level: EnglishLevel, customRate?:
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
 
-  // Adjust rate based on customRate or level
+  // Use customRate if provided, otherwise default to natural normal speed (1.0)
   if (customRate) {
     utterance.rate = customRate;
   } else {
-    if (["Starters", "Movers"].includes(level)) {
-      utterance.rate = 0.8;
-    } else if (["Flyers", "A1"].includes(level)) {
-      utterance.rate = 0.9;
-    } else {
-      utterance.rate = 1.0;
-    }
+    utterance.rate = 1.0; // Normal native speaking pace for all levels
   }
 
   utterance.pitch = 1.0;
@@ -563,11 +557,8 @@ function pcmChunksToWav(base64Chunks: string[], sampleRate: number = 24000): str
 async function geminiTTS(text: string, level: EnglishLevel, voice: string = "Kore"): Promise<string> {
   const cleanedText = text.replace(/\s+/g, ' ').trim();
   
-  // Build the prompt with pace instruction for young learners
-  let prompt = `Say the following text exactly: ${cleanedText}`;
-  if (["Starters", "Movers", "Flyers"].includes(level)) {
-    prompt = `[slowly, clearly, at a pace suitable for children] ${cleanedText}`;
-  }
+  // Build the prompt requesting natural native English intonation at normal pace
+  const prompt = `Read the following text aloud in a natural, native English speaking voice with proper intonation, rhythm, stress patterns, and natural pauses. Speak at a normal conversational pace — not too slow, not too fast. Make it sound like a fluent native speaker reading naturally: ${cleanedText}`;
 
   // Use ONLY TTS-specific models (gemini-2.0-flash etc. do NOT support audio output with speechConfig)
   for (let i = 0; i < TTS_MODELS.length; i++) {
