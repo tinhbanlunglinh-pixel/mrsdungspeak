@@ -856,17 +856,22 @@ Output JSON:
       .replace(/\s*```$/i, '')
       .trim();
     const result = JSON.parse(cleanText);
-    const score = result.isComplete === false ? 0 : (result.score || 0);
+    const rawScore = result.isComplete === false ? 0 : (result.score || 0);
     
     // Defensive programming: ensure criteriaScores contains all 5 required CEFR sub-scores
     const rawScores = result.criteriaScores || {};
     const criteriaScores = {
-      pronunciation: typeof rawScores.pronunciation === 'number' ? rawScores.pronunciation : (score / 5),
-      fluency: typeof rawScores.fluency === 'number' ? rawScores.fluency : (score / 5),
-      vocabulary: typeof rawScores.vocabulary === 'number' ? rawScores.vocabulary : (score / 5),
-      grammar: typeof rawScores.grammar === 'number' ? rawScores.grammar : (score / 5),
-      interaction: typeof rawScores.interaction === 'number' ? rawScores.interaction : (score / 5)
+      pronunciation: typeof rawScores.pronunciation === 'number' ? rawScores.pronunciation : (rawScore / 5),
+      fluency: typeof rawScores.fluency === 'number' ? rawScores.fluency : (rawScore / 5),
+      vocabulary: typeof rawScores.vocabulary === 'number' ? rawScores.vocabulary : (rawScore / 5),
+      grammar: typeof rawScores.grammar === 'number' ? rawScores.grammar : (rawScore / 5),
+      interaction: typeof rawScores.interaction === 'number' ? rawScores.interaction : (rawScore / 5)
     };
+
+    // Recalculate total score from criteria sub-scores to avoid floating-point mismatch
+    // (e.g. AI might return score=9.6 but criteria are all 1.9 which should sum to 9.5)
+    const calculatedScore = result.isComplete === false ? 0 :
+      Math.round((criteriaScores.pronunciation + criteriaScores.fluency + criteriaScores.vocabulary + criteriaScores.grammar + criteriaScores.interaction) * 10) / 10;
 
     // Ensure friendly feedback from Mrs. Dung if incomplete or empty
     const defaultFeedback = (result.isComplete === false)
@@ -877,7 +882,7 @@ Output JSON:
     return {
       isComplete: result.isComplete ?? true,
       missingContent: result.missingContent || "",
-      score: score,
+      score: calculatedScore,
       cefrLevel: result.cefrLevel || "A1",
       criteriaScores: criteriaScores,
       feedback: feedback,

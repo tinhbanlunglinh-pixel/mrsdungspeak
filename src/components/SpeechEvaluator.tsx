@@ -37,13 +37,13 @@ export const SpeechEvaluator: React.FC<SpeechEvaluatorProps> = ({
         {!evaluation && !isEvaluating && (
           <button
             onClick={isRecording ? stopRecording : startRecording}
-            className={`flex items-center gap-3 px-5 sm:px-6 py-3 rounded-2xl font-black text-white transition-all shadow-xl text-sm sm:text-base
+            className={`flex items-center gap-3 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl font-black text-white transition-all shadow-xl text-base sm:text-lg min-h-[52px]
               ${isRecording 
                 ? 'bg-red-500 hover:bg-red-600 animate-pulse scale-105' 
                 : 'bg-emerald-500 hover:bg-emerald-600 hover:-translate-y-1'}`}
-            style={{ textShadow: '0 2px 4px rgba(0,0,0,0.1)' }}
+            style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3), 0 2px 8px rgba(0,0,0,0.15)', letterSpacing: '0.02em', WebkitFontSmoothing: 'antialiased' }}
           >
-            {isRecording ? <Square size={20} fill="currentColor" /> : <Mic size={20} />}
+            {isRecording ? <Square size={22} fill="currentColor" /> : <Mic size={22} />}
             {isRecording ? 'Đang nghe bé nói...' : 'Bắt đầu luyện nói'}
           </button>
         )}
