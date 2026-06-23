@@ -856,16 +856,31 @@ Output JSON:
       .replace(/\s*```$/i, '')
       .trim();
     const result = JSON.parse(cleanText);
-    const rawScore = result.isComplete === false ? 0 : (result.score || 0);
+    let rawScore = result.isComplete === false ? 0 : (result.score || 0);
+    
+    // Normalize score to be out of 10 if AI mistakenly returns it on a 100 scale
+    if (rawScore > 10) {
+      rawScore = rawScore / 10;
+    }
     
     // Defensive programming: ensure criteriaScores contains all 5 required CEFR sub-scores
     const rawScores = result.criteriaScores || {};
+    
+    const clampScore = (val: any) => {
+      if (typeof val !== 'number') return rawScore / 5;
+      let s = val;
+      if (s > 2.0) {
+        s = s > 10 ? (s / 100) * 2 : (s / 10) * 2;
+      }
+      return Math.min(Math.max(s, 0), 2.0);
+    };
+
     const criteriaScores = {
-      pronunciation: typeof rawScores.pronunciation === 'number' ? rawScores.pronunciation : (rawScore / 5),
-      fluency: typeof rawScores.fluency === 'number' ? rawScores.fluency : (rawScore / 5),
-      vocabulary: typeof rawScores.vocabulary === 'number' ? rawScores.vocabulary : (rawScore / 5),
-      grammar: typeof rawScores.grammar === 'number' ? rawScores.grammar : (rawScore / 5),
-      interaction: typeof rawScores.interaction === 'number' ? rawScores.interaction : (rawScore / 5)
+      pronunciation: clampScore(rawScores.pronunciation),
+      fluency: clampScore(rawScores.fluency),
+      vocabulary: clampScore(rawScores.vocabulary),
+      grammar: clampScore(rawScores.grammar),
+      interaction: clampScore(rawScores.interaction)
     };
 
     // Recalculate total score from criteria sub-scores to avoid floating-point mismatch
