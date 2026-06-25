@@ -1,9 +1,9 @@
 import React from 'react';
 import { 
   Type, Image as ImageIcon, FileText, Upload, RefreshCw, X, 
-  GraduationCap, Sparkles, AlertCircle, Mic 
+  GraduationCap, Sparkles, AlertCircle 
 } from 'lucide-react';
-import { EnglishLevel, ContentMode, TTSVoice } from '../types';
+import { EnglishLevel, ContentMode } from '../types';
 
 interface InputPanelProps {
   topic: string;
@@ -109,6 +109,8 @@ export const InputPanel: React.FC<InputPanelProps> = (props) => {
               ))}
             </div>
           </div>
+
+
 
           {/* Generate Button */}
           <button onClick={onGenerate} disabled={isGenerating}

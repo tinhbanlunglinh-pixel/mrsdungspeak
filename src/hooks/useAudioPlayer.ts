@@ -12,7 +12,6 @@ interface UseAudioPlayerReturn {
   setIsAudioLoading: (loading: boolean) => void;
   setAudioUrl: (url: string | null) => void;
   handlePlayAudio: () => Promise<void>;
-  regenerateAudio: (newVoice: string) => Promise<void>;
   cleanup: () => void;
 }
 
@@ -162,37 +161,6 @@ export function useAudioPlayer(
     }
   };
 
-  const regenerateAudio = async (newVoice: string) => {
-    if (!readingText) return;
-    
-    // Dừng audio đang phát
-    if (isPlaying) {
-      if (isBrowserTTS) stopBrowserTTS();
-      else if (audioRef.current) audioRef.current.pause();
-      setIsPlaying(false);
-    }
-
-    setIsAudioLoading(true);
-    setAudioUrlSafe(null);
-
-    try {
-      const url = await generateAudio(readingText, level, newVoice);
-      if (url === BROWSER_TTS_SIGNAL) {
-        setAudioUrlSafe(BROWSER_TTS_SIGNAL);
-      } else {
-        setAudioUrlSafe(url);
-      }
-      // Tự động phát khi tải xong (thông qua useEffect)
-      setIsPlaying(true);
-    } catch (err) {
-      console.error("Failed to regenerate audio", err);
-      if (setError) setError("Không thể thay đổi giọng đọc. Vui lòng thử lại!");
-      setAudioUrlSafe(BROWSER_TTS_SIGNAL);
-    } finally {
-      setIsAudioLoading(false);
-    }
-  };
-
   const cleanup = () => {
     if (previousAudioUrlRef.current && previousAudioUrlRef.current !== BROWSER_TTS_SIGNAL) {
       URL.revokeObjectURL(previousAudioUrlRef.current);
@@ -214,7 +182,6 @@ export function useAudioPlayer(
     setIsAudioLoading,
     setAudioUrl: setAudioUrlSafe,
     handlePlayAudio,
-    regenerateAudio,
     cleanup,
   };
 }
