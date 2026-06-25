@@ -13,8 +13,8 @@ export const Footer: React.FC = () => (
             </div>
           </div>
           <div>
-            <h3 className="text-2xl font-black text-brand-yellow uppercase tracking-tight">Ms Thao's English Class</h3>
-            <p className="text-slate-300 font-serif italic text-sm mt-1">"Fly high with English. Ms Thao's English class"</p>
+            <h3 className="text-2xl font-black text-brand-yellow uppercase tracking-tight">ENGLISH MRS. DUNG</h3>
+            <p className="text-slate-300 font-serif italic text-sm mt-1">"English with Heart. Success with Mrs.Dung"</p>
           </div>
         </div>
 
@@ -27,11 +27,19 @@ export const Footer: React.FC = () => (
           <ul className="space-y-4">
             <li className="flex items-start gap-3 group">
               <span className="text-brand-green mt-1">📍</span>
-              <span className="text-sm font-black group-hover:text-brand-yellow transition-colors cursor-pointer">839/15 Nguyễn Trung Trực, Rạch Giá, An Giang.</span>
+              <span className="text-sm font-black group-hover:text-brand-yellow transition-colors cursor-pointer">Ngõ 717 Mạc Đăng Doanh, Hải Phòng.</span>
             </li>
             <li className="flex items-start gap-3 group">
               <span className="text-brand-green mt-1">📞</span>
-              <span className="text-sm font-black group-hover:text-brand-yellow transition-colors cursor-pointer">Ms Thao: 0949 573 829</span>
+              <span className="text-sm font-black group-hover:text-brand-yellow transition-colors cursor-pointer">Mrs.Dung: 0364409436</span>
+            </li>
+            <li className="flex items-start gap-3 group">
+              <span className="text-brand-yellow mt-1">✉️</span>
+              <span className="text-sm font-black group-hover:text-brand-yellow transition-colors cursor-pointer">nguyendungvn8@gmail.com</span>
+            </li>
+            <li className="flex items-start gap-3 group">
+              <span className="text-sky-400 mt-1">🌐</span>
+              <a href="#" className="text-sm font-black group-hover:text-brand-yellow transition-colors underline decoration-brand-yellow/30 underline-offset-4">Fanpage Facebook</a>
             </li>
           </ul>
         </div>
@@ -44,11 +52,11 @@ export const Footer: React.FC = () => (
           </h4>
           <div className="bg-white/5 border border-white/10 p-6 rounded-[2rem] space-y-4">
             <p className="text-lg font-serif italic text-white font-bold leading-relaxed">
-              "Fly high with English. Ms Thao's English class"
+              "English with Heart. Success with Mrs.Dung"
             </p>
             <div className="h-0.5 bg-white/10 w-full" />
             <p className="text-base font-black text-brand-green uppercase tracking-widest text-[13px]">
-              VƯƠN CAO CÙNG TIẾNG ANH.
+              HỌC TIẾNG ANH BẰNG CẢ TRÁI TIM.
             </p>
           </div>
         </div>

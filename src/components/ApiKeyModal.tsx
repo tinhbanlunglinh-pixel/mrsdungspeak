@@ -1,30 +1,32 @@
 import React, { useState } from 'react';
-import { Zap, Languages } from 'lucide-react';
+import { Zap, Languages, Sparkles, Cpu, ShieldAlert } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface ApiKeyModalProps {
   show: boolean;
   currentApiKey: string;
-  onSave: (key: string) => void;
+  currentModel: string;
+  onSave: (key: string, model: string) => void;
   onClose: () => void;
-  hasEnvKey?: boolean;
 }
 
-export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, onSave, onClose, hasEnvKey }) => {
-  // Use local state to avoid modifying the real apiKey on every keystroke (bug fix)
+export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, currentModel, onSave, onClose }) => {
+  // Use local state to avoid modifying the real apiKey on every keystroke
   const [localKey, setLocalKey] = useState(currentApiKey);
+  const [localModel, setLocalModel] = useState(currentModel);
 
   // Sync when modal opens
   React.useEffect(() => {
     if (show) {
       setLocalKey(currentApiKey);
+      setLocalModel(currentModel);
     }
-  }, [show, currentApiKey]);
+  }, [show, currentApiKey, currentModel]);
 
   const handleSave = () => {
     const trimmedKey = localKey.trim();
     if (!trimmedKey) return;
-    onSave(trimmedKey);
+    onSave(trimmedKey, localModel);
   };
 
   return (
@@ -36,7 +38,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, o
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/60 backdrop-blur-md"
-            onClick={onClose}
+            // Removed onClick to prevent accidental closing on mobile when switching tabs
           />
           <motion.div 
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -54,16 +56,33 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, o
               </p>
               
               <div className="w-full space-y-4">
-                <div className="text-left">
+                <div className="text-left relative">
                   <label className="text-xs font-black text-brand-green uppercase tracking-widest block mb-2 px-1">Nhập API Key</label>
-                  <input 
-                    type="password"
-                    placeholder="AIzaSyB..."
-                    value={localKey}
-                    onChange={(e) => setLocalKey(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
-                    className="w-full px-5 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-green/10 focus:border-brand-green transition-all font-mono text-sm"
-                  />
+                  <div className="relative">
+                    <input 
+                      type="password"
+                      placeholder="AIzaSyB..."
+                      value={localKey}
+                      onChange={(e) => setLocalKey(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
+                      className="w-full pl-5 pr-20 py-3.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:ring-4 focus:ring-brand-green/10 focus:border-brand-green transition-all font-mono text-sm"
+                    />
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          const text = await navigator.clipboard.readText();
+                          if (text) setLocalKey(text);
+                        } catch (err) {
+                          console.error("Failed to read clipboard contents: ", err);
+                          alert("Trình duyệt không hỗ trợ dán tự động. Vui lòng nhấn giữ vào ô nhập và chọn 'Dán'.");
+                        }
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-emerald-100 text-brand-green hover:bg-emerald-200 font-bold text-xs rounded-xl transition-all"
+                    >
+                      DÁN
+                    </button>
+                  </div>
                 </div>
 
                 <a 
@@ -76,6 +95,67 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, o
                   Nhấn vào đây để lấy API Key miễn phí
                 </a>
 
+                {/* Chọn Model AI dạng Cards */}
+                <div className="text-left mt-2">
+                  <label className="text-xs font-black text-brand-green uppercase tracking-widest block mb-2 px-1">
+                    Chọn Model AI
+                  </label>
+                  <div className="grid grid-cols-1 gap-2">
+                    {[
+                      {
+                        id: 'gemini-2.5-flash',
+                        name: 'Gemini 2.5 Flash',
+                        desc: 'Cực kỳ ổn định và đáng tin cậy',
+                        badge: 'Khuyên dùng',
+                        icon: <ShieldAlert size={16} className="text-emerald-500" />,
+                        bg: 'from-emerald-50 to-teal-50/30 border-slate-100 hover:border-emerald-200',
+                        activeBg: 'bg-emerald-50/50 border-emerald-500 shadow-md shadow-emerald-50'
+                      },
+                      {
+                        id: 'gemini-3.5-flash',
+                        name: 'Gemini 3.5 Flash',
+                        desc: 'Thế hệ mới nhất, thông minh nhất',
+                        badge: 'Mới nhất',
+                        icon: <Sparkles size={16} className="text-amber-500" />,
+                        bg: 'from-amber-50 to-orange-50/30 border-slate-100 hover:border-orange-200',
+                        activeBg: 'bg-orange-50/50 border-orange-500 shadow-md shadow-orange-50'
+                      },
+                      {
+                        id: 'gemini-3-flash-preview',
+                        name: 'Gemini 3 Flash',
+                        desc: 'Hiệu suất frontier, tốc độ nhanh',
+                        badge: 'Preview',
+                        icon: <Cpu size={16} className="text-indigo-500" />,
+                        bg: 'from-indigo-50 to-purple-50/30 border-slate-100 hover:border-indigo-200',
+                        activeBg: 'bg-indigo-50/50 border-indigo-500 shadow-md shadow-indigo-50'
+                      }
+                    ].map((m) => {
+                      const isSelected = localModel === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setLocalModel(m.id)}
+                          className={`w-full p-3 rounded-2xl border-2 text-left transition-all flex items-start gap-3 bg-gradient-to-br
+                            ${isSelected ? m.activeBg : `${m.bg} cursor-pointer`}`}
+                        >
+                          <div className="mt-0.5 p-1.5 bg-white rounded-lg shadow-sm">{m.icon}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <span className="text-sm font-black text-slate-800">{m.name}</span>
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full
+                                ${isSelected ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                                {m.badge}
+                              </span>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-0.5 font-medium">{m.desc}</p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <button
                   onClick={handleSave}
                   disabled={!localKey.trim()}
@@ -84,7 +164,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({ show, currentApiKey, o
                   Lưu và Bắt đầu
                 </button>
                 
-                {(currentApiKey || hasEnvKey) && (
+                {currentApiKey && (
                   <button 
                     onClick={onClose}
                     className="text-slate-400 hover:text-slate-600 font-bold text-xs uppercase tracking-widest mt-2"

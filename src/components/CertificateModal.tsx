@@ -16,12 +16,11 @@ interface CertificateModalProps {
   isDownloading: boolean;
   setIsDownloading: (d: boolean) => void;
   setError: (err: string | null) => void;
-  exerciseScore: number | null;
 }
 
 export const CertificateModal: React.FC<CertificateModalProps> = ({
   show, onClose, evaluation, studentName, teacherName,
-  generatedTopicName, topic, level, isDownloading, setIsDownloading, setError, exerciseScore
+  generatedTopicName, topic, level, isDownloading, setIsDownloading, setError
 }) => {
   const certificateRef = useRef<HTMLDivElement>(null);
 
@@ -31,7 +30,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
     try {
       await new Promise(resolve => setTimeout(resolve, 500));
       const canvas = await html2canvas(certificateRef.current, {
-        useCORS: true, allowTaint: true, scale: 2,
+        useCORS: true, allowTaint: true, scale: window.devicePixelRatio ? Math.max(3, window.devicePixelRatio * 2) : 3,
         backgroundColor: '#ffffff', logging: true, imageTimeout: 15000,
         onclone: (clonedDoc) => {
           const container = clonedDoc.querySelector('[data-certificate-container]') as HTMLElement;
@@ -107,17 +106,9 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                   </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 sm:gap-8 justify-center">
-                  <div className="px-6 sm:px-10 py-4 sm:py-6 rounded-[2rem]" style={{ background: 'linear-gradient(to bottom right, #f0fdf4, #d1fae5)', border: '4px solid #ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-                    <p className="text-[10px] sm:text-xs uppercase font-black tracking-[0.2em] mb-2" style={{ color: '#059669' }}>Speaking Score</p>
-                    <p className="text-3xl sm:text-5xl font-black" style={{ color: '#065f46', textShadow: '2px 2px 0 white' }}>{evaluation.score}<span className="text-lg sm:text-xl" style={{ color: '#34d399' }}>/10</span></p>
-                  </div>
-                  {exerciseScore !== null && (
-                    <div className="px-6 sm:px-10 py-4 sm:py-6 rounded-[2rem]" style={{ background: 'linear-gradient(to bottom right, #eff6ff, #dbeafe)', border: '4px solid #ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
-                      <p className="text-[10px] sm:text-xs uppercase font-black tracking-[0.2em] mb-2" style={{ color: '#2563eb' }}>Exercise Score</p>
-                      <p className="text-3xl sm:text-5xl font-black" style={{ color: '#1e40af', textShadow: '2px 2px 0 white' }}>{exerciseScore}<span className="text-lg sm:text-xl" style={{ color: '#60a5fa' }}>/10</span></p>
-                    </div>
-                  )}
+                <div className="px-6 sm:px-12 py-4 sm:py-6 rounded-[2rem]" style={{ background: 'linear-gradient(to bottom right, #f0fdf4, #d1fae5)', border: '4px solid #ffffff', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+                  <p className="text-xs uppercase font-black tracking-[0.2em] mb-2" style={{ color: '#059669' }}>Final Score</p>
+                  <p className="text-4xl sm:text-6xl font-black" style={{ color: '#065f46', textShadow: '3px 3px 0 white' }}>{evaluation.score.toFixed(1)}<span className="text-xl sm:text-2xl" style={{ color: '#34d399' }}>/10</span></p>
                 </div>
 
                 <div className="w-full flex justify-between items-end pt-8 sm:pt-12 px-4 sm:px-8">

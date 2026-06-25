@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { VocabularyItem, EnglishLevel, ExerciseData } from '../types';
+import { VocabularyItem, EnglishLevel } from '../types';
 
 export interface LessonRecord {
   id: string;
@@ -10,9 +10,7 @@ export interface LessonRecord {
   vocabulary: VocabularyItem[];
   generatedImage: string | null;
   generatedPrompt: string | null;
-  score?: number; // speaking score
-  exerciseData?: ExerciseData | null;
-  exerciseScore?: number | null;
+  score?: number;
   createdAt: number; // timestamp
 }
 
@@ -62,14 +60,6 @@ export function useLessonHistory() {
     setLessons(prev => prev.map(l => l.id === id ? { ...l, score } : l));
   }, []);
 
-  const updateExerciseScore = useCallback((id: string, exerciseScore: number) => {
-    setLessons(prev => prev.map(l => l.id === id ? { ...l, exerciseScore } : l));
-  }, []);
-
-  const updateExerciseData = useCallback((id: string, exerciseData: ExerciseData) => {
-    setLessons(prev => prev.map(l => l.id === id ? { ...l, exerciseData } : l));
-  }, []);
-
   const clearAll = useCallback(() => {
     setLessons([]);
   }, []);
@@ -79,8 +69,6 @@ export function useLessonHistory() {
     addLesson,
     removeLesson,
     updateScore,
-    updateExerciseScore,
-    updateExerciseData,
     clearAll,
   };
 }

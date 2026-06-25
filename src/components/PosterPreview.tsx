@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { FileText, Volume2, Pause, RefreshCw, Target, Play } from 'lucide-react';
-import { VocabularyItem, EnglishLevel } from '../types';
+import { Image as ImageIcon, FileText, Volume2, Pause, RefreshCw, Target, Play, Mic } from 'lucide-react';
+import { VocabularyItem, EnglishLevel, TTSVoice } from '../types';
+import { speakWithBrowser, stopBrowserTTS } from '../services/geminiService';
 
 interface PosterPreviewProps {
   readingText: string | null;
@@ -15,11 +16,6 @@ interface PosterPreviewProps {
   isPlaying: boolean;
   isAudioLoading: boolean;
   isBrowserTTS: boolean;
-  setIsPlaying: (playing: boolean) => void;
-  handlePlayAudio: () => Promise<void>;
-  isDownloading: boolean;
-  onDownloadPoster: () => void;
-  onToggleTranslation: () => void;
   posterRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -30,7 +26,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
   generatedTopicName, topic, level, showTranslation,
   audioUrl, audioRef, isPlaying, isAudioLoading, isBrowserTTS,
   setIsPlaying, handlePlayAudio,
-  isDownloading, onDownloadPoster, onToggleTranslation,
+  onToggleTranslation,
   posterRef
 }) => {
   return (
@@ -51,13 +47,12 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
         maxWidth: '600px'
       }}
     >
-
       {/* Text Section */}
       <div className="flex-1 p-3" style={{ backgroundColor: '#ffffff', border: '3px solid #00a84d', borderRadius: '16px', boxShadow: '0 4px 0 #0d4023' }}>
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-2">
             <FileText size={18} style={{ color: '#00a84d' }} />
-            <h2 className="text-base font-black" style={{ color: '#064e3b', margin: 0 }}>Ms Thao's English Class</h2>
+            <h2 className="text-base font-black" style={{ color: '#064e3b', margin: 0 }}>Mrs. Dung's Class</h2>
           </div>
           <div className="flex items-center gap-2" data-html2canvas-ignore>
             <button
@@ -76,9 +71,19 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
         </div>
 
         {/* Custom Audio Player */}
-        {audioUrl && (
+        {readingText && (
           <div data-html2canvas-ignore>
-            <CustomAudioPlayer audioUrl={audioUrl} audioRef={audioRef} isPlaying={isPlaying} setIsPlaying={setIsPlaying} />
+            <CustomAudioPlayer 
+              audioUrl={audioUrl} 
+              audioRef={audioRef} 
+              isPlaying={isPlaying} 
+              setIsPlaying={setIsPlaying}
+              isBrowserTTS={isBrowserTTS}
+              handlePlayAudio={handlePlayAudio}
+              isAudioLoading={isAudioLoading}
+              readingText={readingText}
+              level={level}
+            />
           </div>
         )}
 
@@ -93,10 +98,10 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
           <div className="bg-white/40 p-3 sm:p-4 md:p-8 rounded-[2rem] border-2 border-white shadow-lg backdrop-blur-sm mx-auto w-full max-w-[95%]">
             <div className="text-[11px] font-black uppercase tracking-[0.4em] mb-4 text-center" style={{ color: '#0369a1', opacity: 0.5 }}>READING PASSAGE</div>
             <div
-              className="leading-[1.6] whitespace-pre-wrap font-bold text-left md:text-justify px-2"
+              className="leading-[1.6] whitespace-pre-wrap font-medium text-left md:text-justify px-2"
               style={{
                 color: '#1e293b',
-                fontSize: readingText && readingText.length > 500 ? '18px' : readingText && readingText.length > 300 ? '22px' : readingText && readingText.length > 150 ? '26px' : '30px',
+                fontSize: readingText && readingText.length > 500 ? '16px' : readingText && readingText.length > 300 ? '18px' : readingText && readingText.length > 150 ? '22px' : '26px',
                 fontFamily: '"Outfit", sans-serif'
               }}
             >
@@ -107,7 +112,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
           {showTranslation && translationText && (
             <div className="space-y-2 pt-3" style={{ borderTop: '2px solid #fef3c7' }}>
               <div className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: '#d97706' }}>Tiếng Việt</div>
-              <div className="text-sm sm:text-lg leading-relaxed whitespace-pre-wrap font-bold italic" style={{ color: '#334155' }}>
+              <div className="text-base sm:text-lg leading-relaxed whitespace-pre-wrap font-medium italic" style={{ color: '#334155' }}>
                 {translationText}
               </div>
             </div>
@@ -119,7 +124,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
           <div className="mt-6 pt-5" style={{ borderTop: '3px dashed #e2e8f0' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-8 h-8 bg-indigo-600 rounded-xl flex items-center justify-center text-white shadow-lg"><Target size={18} /></div>
-              <h3 className="text-base font-black uppercase tracking-widest" style={{ color: '#0369a1' }}>Word Bank</h3>
+              <h3 className="text-base font-black uppercase tracking-widest" style={{ color: '#0369a1' }}>New Words</h3>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {vocabulary.map((item, idx) => (
@@ -138,7 +143,7 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
 
       {/* Footer */}
       <div className="flex justify-between items-center pt-2" style={{ borderTop: '1px solid #f3f4f6' }}>
-        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#9ca3af' }}>MS THAO'S ENGLISH CLASS</span>
+        <span className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#9ca3af' }}>ENGLISH MRS. DUNG</span>
         <span className="text-[10px] font-black" style={{ color: '#00a84d' }}>Level: {level}</span>
       </div>
     </div>
@@ -148,17 +153,24 @@ export const PosterPreview: React.FC<PosterPreviewProps> = ({
 
 // ====== CUSTOM AUDIO PLAYER ======
 const CustomAudioPlayer: React.FC<{
-  audioUrl: string;
+  audioUrl: string | null;
   audioRef: React.RefObject<HTMLAudioElement | null>;
   isPlaying: boolean;
   setIsPlaying: (p: boolean) => void;
-}> = ({ audioUrl, audioRef, isPlaying, setIsPlaying }) => {
+  isBrowserTTS: boolean;
+  handlePlayAudio: () => void;
+  isAudioLoading: boolean;
+  readingText: string;
+  level: EnglishLevel;
+}> = ({ audioUrl, audioRef, isPlaying, setIsPlaying, isBrowserTTS, handlePlayAudio, isAudioLoading, readingText, level }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
   const progressRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isBrowserTTS || !audioUrl) return;
+
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -174,7 +186,6 @@ const CustomAudioPlayer: React.FC<{
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('play', handlePlay);
 
-    // Set initial duration if already loaded
     if (audio.duration) setDuration(audio.duration);
 
     return () => {
@@ -184,29 +195,49 @@ const CustomAudioPlayer: React.FC<{
       audio.removeEventListener('pause', handlePause);
       audio.removeEventListener('play', handlePlay);
     };
-  }, [audioRef, setIsPlaying]);
+  }, [audioRef, setIsPlaying, isBrowserTTS, audioUrl]);
 
-  const togglePlay = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play().catch(console.error);
+  // Sync audio playback rate with selected speed when audio loads
+  useEffect(() => {
+    if (!isBrowserTTS && audioRef.current && audioUrl) {
+      audioRef.current.playbackRate = speed;
     }
-  }, [audioRef, isPlaying]);
+  }, [audioUrl, speed, isBrowserTTS]);
+
+  const onPlayClick = useCallback(() => {
+    if (isBrowserTTS) {
+      if (isPlaying) {
+        stopBrowserTTS();
+        setIsPlaying(false);
+      } else {
+        speakWithBrowser(readingText, level, speed);
+        setIsPlaying(true);
+      }
+    } else {
+      handlePlayAudio();
+    }
+  }, [isPlaying, isBrowserTTS, handlePlayAudio, readingText, level, speed, setIsPlaying]);
 
   const handleSpeedChange = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
     const currentIdx = SPEED_OPTIONS.indexOf(speed);
     const nextIdx = (currentIdx + 1) % SPEED_OPTIONS.length;
     const newSpeed = SPEED_OPTIONS[nextIdx];
-    audio.playbackRate = newSpeed;
     setSpeed(newSpeed);
-  }, [audioRef, speed]);
+
+    if (isBrowserTTS) {
+      if (isPlaying) {
+        speakWithBrowser(readingText, level, newSpeed);
+      }
+    } else {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.playbackRate = newSpeed;
+      }
+    }
+  }, [audioRef, speed, isBrowserTTS, isPlaying, readingText, level]);
 
   const handleProgressClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isBrowserTTS || !audioUrl) return;
     const audio = audioRef.current;
     const bar = progressRef.current;
     if (!audio || !bar || !duration) return;
@@ -214,7 +245,7 @@ const CustomAudioPlayer: React.FC<{
     const x = e.clientX - rect.left;
     const ratio = Math.max(0, Math.min(1, x / rect.width));
     audio.currentTime = ratio * duration;
-  }, [audioRef, duration]);
+  }, [audioRef, duration, isBrowserTTS, audioUrl]);
 
   const formatTime = (t: number) => {
     if (!t || isNaN(t)) return '0:00';
@@ -227,12 +258,14 @@ const CustomAudioPlayer: React.FC<{
 
   return (
     <div className="mb-3 px-1 space-y-2">
-      {/* Hidden native audio element */}
-      <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" />
+      {/* Hidden native audio element for Gemini AI TTS */}
+      {!isBrowserTTS && audioUrl && (
+        <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" />
+      )}
 
       <div className="flex items-center gap-2 sm:gap-3">
         {/* Play/Pause Button */}
-        <button onClick={togglePlay}
+        <button onClick={onPlayClick}
           className="w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all shrink-0 shadow-sm"
           style={{
             background: isPlaying ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #6366f1, #818cf8)',
@@ -242,28 +275,35 @@ const CustomAudioPlayer: React.FC<{
           {isPlaying ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
         </button>
 
-        {/* Progress Bar */}
-        <div className="flex-1 space-y-0.5">
-          <div
-            ref={progressRef}
-            onClick={handleProgressClick}
-            className="w-full h-2 bg-slate-100 rounded-full cursor-pointer group relative overflow-hidden"
-          >
-            <div
-              className="h-full rounded-full transition-all duration-100"
-              style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #6366f1, #10b981)' }}
-            />
-            {/* Thumb */}
-            <div
-              className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full border-2 border-indigo-500 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
-              style={{ left: `calc(${progress}% - 7px)` }}
-            />
+        {/* Dynamic progress section depending on TTS mode */}
+        {isBrowserTTS || !audioUrl ? (
+          <div className={`flex-1 flex items-center justify-center bg-slate-50 border border-slate-100 rounded-xl px-3 py-2 text-slate-500 font-black text-[9px] uppercase tracking-widest gap-2 select-none ${isPlaying ? 'animate-pulse text-brand-green border-brand-green/20' : ''}`}>
+            <span>🔊 Giọng đọc mẫu Trình duyệt (Tốc độ: {speed}x)</span>
           </div>
-          <div className="flex justify-between text-[9px] font-bold text-slate-400 px-0.5">
-            <span>{formatTime(currentTime)}</span>
-            <span>{formatTime(duration)}</span>
+        ) : (
+          /* Progress Bar for Gemini Audio */
+          <div className="flex-1 space-y-0.5">
+            <div
+              ref={progressRef}
+              onClick={handleProgressClick}
+              className="w-full h-2 bg-slate-100 rounded-full cursor-pointer group relative overflow-hidden"
+            >
+              <div
+                className="h-full rounded-full transition-all duration-100"
+                style={{ width: `${progress}%`, background: 'linear-gradient(90deg, #6366f1, #10b981)' }}
+              />
+              {/* Thumb */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white rounded-full border-2 border-indigo-500 shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ left: `calc(${progress}% - 7px)` }}
+              />
+            </div>
+            <div className="flex justify-between text-[9px] font-bold text-slate-400 px-0.5">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Speed Button */}
         <button
