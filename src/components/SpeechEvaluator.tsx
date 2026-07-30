@@ -11,8 +11,10 @@ interface SpeechEvaluatorProps {
   isEvaluating: boolean;
   evaluation: EvaluationResult | null;
   studentName: string;
+  studentClass: string;
   teacherName: string;
   setStudentName: (name: string) => void;
+  setStudentClass: (name: string) => void;
   setTeacherName: (name: string) => void;
   startRecording: () => Promise<void>;
   stopRecording: () => void;
@@ -21,7 +23,7 @@ interface SpeechEvaluatorProps {
 
 export const SpeechEvaluator: React.FC<SpeechEvaluatorProps> = ({
   readingText, level, isRecording, isEvaluating, evaluation,
-  studentName, teacherName, setStudentName, setTeacherName,
+  studentName, studentClass, teacherName, setStudentName, setStudentClass, setTeacherName,
   startRecording, stopRecording, onShowCertificate
 }) => {
   if (!readingText) return null;
@@ -71,8 +73,8 @@ export const SpeechEvaluator: React.FC<SpeechEvaluatorProps> = ({
             ) : (
               <CompleteResult 
                 evaluation={evaluation} startRecording={startRecording}
-                studentName={studentName} teacherName={teacherName}
-                setStudentName={setStudentName} setTeacherName={setTeacherName}
+                studentName={studentName} studentClass={studentClass} teacherName={teacherName}
+                setStudentName={setStudentName} setStudentClass={setStudentClass} setTeacherName={setTeacherName}
                 onShowCertificate={onShowCertificate}
                 level={level}
               />
@@ -106,11 +108,11 @@ const IncompleteResult: React.FC<{ evaluation: EvaluationResult; startRecording:
 const CompleteResult: React.FC<{
   evaluation: EvaluationResult;
   startRecording: () => Promise<void>;
-  studentName: string; teacherName: string;
-  setStudentName: (n: string) => void; setTeacherName: (n: string) => void;
+  studentName: string; studentClass: string; teacherName: string;
+  setStudentName: (n: string) => void; setStudentClass: (n: string) => void; setTeacherName: (n: string) => void;
   onShowCertificate: () => void;
   level: EnglishLevel;
-}> = ({ evaluation, startRecording, studentName, teacherName, setStudentName, setTeacherName, onShowCertificate, level }) => (
+}> = ({ evaluation, startRecording, studentName, studentClass, teacherName, setStudentName, setStudentClass, setTeacherName, onShowCertificate, level }) => (
   <>
     {/* Score */}
     <div className="flex items-center justify-between bg-gradient-to-br from-white to-emerald-50 p-4 sm:p-6 rounded-2xl border-2 border-emerald-200 shadow-md">
@@ -162,41 +164,17 @@ const CompleteResult: React.FC<{
 
     {/* Feedback */}
     <div className="bg-white p-4 sm:p-6 rounded-2xl border-2 border-emerald-100 shadow-md space-y-6">
-      <div className="flex items-start gap-3 bg-green-50 p-3 sm:p-4 rounded-xl border border-green-100">
-        <ThumbsUp size={24} className="text-green-500 mt-0.5 shrink-0" />
-        <p className="text-sm sm:text-base font-medium text-slate-800 leading-relaxed italic">"{evaluation.feedback}"</p>
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-green-600">
-            <div className="w-6 h-6 bg-green-100 rounded-md flex items-center justify-center"><CheckCircle size={14} /></div>
-            <div className="text-xs font-black uppercase tracking-wider">Ưu điểm nổi bật</div>
-          </div>
-          <div className="space-y-2">
-            {(evaluation.strengths || []).map((s, i) => (
-              <div key={i} className="text-sm font-medium text-slate-700 flex items-start gap-2 bg-green-50/30 p-2 rounded-lg">
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full mt-1.5 shrink-0" /> {s}
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 text-orange-600">
-            <div className="w-6 h-6 bg-orange-100 rounded-md flex items-center justify-center"><AlertCircle size={14} /></div>
-            <div className="text-xs font-black uppercase tracking-wider">Cần chú ý thêm</div>
-          </div>
-          <div className="space-y-2">
-            {evaluation.improvements.length > 0 ? evaluation.improvements.map((imp, i) => (
-              <div key={i} className="text-sm font-medium text-slate-700 flex items-start gap-2 bg-orange-50/30 p-2 rounded-lg">
-                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-1.5 shrink-0" /> {imp}
-              </div>
-            )) : (
-              <div className="text-sm font-medium text-slate-700 flex items-start gap-2 bg-orange-50/30 p-2 rounded-lg">
-                <div className="w-1.5 h-1.5 bg-orange-400 rounded-full mt-1.5 shrink-0" /> Luyện thêm ngữ điệu lên-xuống và âm nối giữa các từ để tự nhiên hơn
-              </div>
-            )}
-          </div>
+      {/* Feedback Combined */}
+      <div className="bg-green-50 p-4 sm:p-5 rounded-2xl border border-green-200 shadow-sm flex items-start gap-3 sm:gap-4">
+        <ThumbsUp size={28} className="text-green-500 mt-1 shrink-0" />
+        <div className="text-sm sm:text-base font-medium text-slate-800 leading-relaxed italic space-y-2">
+          <p>"{evaluation.feedback}"</p>
+          {(evaluation.strengths?.length > 0 || evaluation.improvements?.length > 0) && (
+            <p className="text-emerald-900/80">
+              {evaluation.strengths?.length > 0 && <span><strong className="text-emerald-700">Cô khen con:</strong> {evaluation.strengths.join(', ').toLowerCase()}. </span>}
+              {evaluation.improvements?.length > 0 && <span><strong className="text-orange-600">Con chú ý thêm:</strong> {evaluation.improvements.join(', ').toLowerCase()}.</span>}
+            </p>
+          )}
         </div>
       </div>
 
@@ -281,20 +259,26 @@ const CompleteResult: React.FC<{
       <div className="pt-4 border-t border-indigo-50 space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Tên học sinh</label>
+            <label className="text-[10px] font-bold text-gray-400 uppercase">Tên học sinh <span className="text-red-500">*</span></label>
             <input type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="Nhập tên bé..."
               className="w-full px-3 py-2 text-xs border border-indigo-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
           </div>
           <div className="space-y-1">
-            <label className="text-[10px] font-bold text-gray-400 uppercase">Tên giáo viên</label>
-            <input type="text" value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder="Tên giáo viên..."
+            <label className="text-[10px] font-bold text-gray-400 uppercase">Lớp học <span className="text-red-500">*</span></label>
+            <input type="text" value={studentClass} onChange={(e) => setStudentClass(e.target.value)} placeholder="Lớp học..."
               className="w-full px-3 py-2 text-xs border border-indigo-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
           </div>
         </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold text-gray-400 uppercase">Tên giáo viên</label>
+          <input type="text" value={teacherName} onChange={(e) => setTeacherName(e.target.value)} placeholder="Tên giáo viên..."
+            className="w-full px-3 py-2 text-xs border border-indigo-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500/20" />
+        </div>
         <button onClick={onShowCertificate}
-          className="w-full py-3.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:from-yellow-500 hover:to-orange-600 transition-all shadow-lg hover:shadow-orange-200 hover:-translate-y-1"
+          disabled={!studentName.trim() || !studentClass.trim()}
+          className="w-full py-3.5 bg-gradient-to-r from-yellow-400 to-orange-500 text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 hover:from-yellow-500 hover:to-orange-600 transition-all shadow-lg hover:shadow-orange-200 hover:-translate-y-1 disabled:opacity-50 disabled:hover:-translate-y-0 disabled:cursor-not-allowed"
         >
-          <Trophy size={20} className="animate-bounce" /> NHẬN GIẤY CHỨNG NHẬN NGAY!
+          <Trophy size={20} className={(!studentName.trim() || !studentClass.trim()) ? "" : "animate-bounce"} /> NHẬN GIẤY CHỨNG NHẬN NGAY!
         </button>
       </div>
     </div>

@@ -10,6 +10,7 @@ interface CertificateModalProps {
   onClose: () => void;
   evaluation: EvaluationResult | null;
   studentName: string;
+  studentClass: string;
   teacherName: string;
   generatedTopicName: string | null;
   topic: string;
@@ -36,7 +37,7 @@ const C = {
 };
 
 export const CertificateModal: React.FC<CertificateModalProps> = ({
-  show, onClose, evaluation, studentName, teacherName,
+  show, onClose, evaluation, studentName, studentClass, teacherName,
   generatedTopicName, topic, level, isDownloading, setIsDownloading, setError
 }) => {
   const certificateRef = useRef<HTMLDivElement>(null);
@@ -48,7 +49,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       // Gửi dữ liệu lên Google Sheets (chạy song song, không block download)
       submitCertificateToSheet({
         studentName: studentName || "Không rõ tên",
-        className: level,
+        className: studentClass || level,
         lessonName: generatedTopicName || topic || "General English",
         score: evaluation?.score ?? 0,
       }).catch((err) => console.warn("[Google Sheets] Gửi dữ liệu thất bại:", err));
@@ -306,7 +307,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                         fontSize: '11px', fontWeight: 800, color: C.white,
                         letterSpacing: '0.08em', textTransform: 'uppercase',
                       }}>
-                        {level}
+                        {studentClass ? `Class ${studentClass}` : level}
                       </div>
                     </div>
                   </div>

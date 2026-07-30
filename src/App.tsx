@@ -50,6 +50,7 @@ export default function App() {
   // UI state
   const [isDownloading, setIsDownloading] = useState(false);
   const [studentName, setStudentName] = useState('');
+  const [studentClass, setStudentClass] = useState('');
   const [teacherName, setTeacherName] = useState('Mrs. Dung');
   const [showCertificate, setShowCertificate] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -356,7 +357,9 @@ export default function App() {
                         isEvaluating={recorder.isEvaluating}
                         evaluation={recorder.evaluation}
                         studentName={studentName} teacherName={teacherName}
+                        studentClass={studentClass}
                         setStudentName={setStudentName} setTeacherName={setTeacherName}
+                        setStudentClass={setStudentClass}
                         startRecording={recorder.startRecording}
                         stopRecording={recorder.stopRecording}
                         onShowCertificate={() => setShowCertificate(true)}
@@ -367,6 +370,7 @@ export default function App() {
                         show={showCertificate} onClose={() => setShowCertificate(false)}
                         evaluation={recorder.evaluation}
                         studentName={studentName} teacherName={teacherName}
+                        studentClass={studentClass}
                         generatedTopicName={generatedTopicName} topic={topic} level={level}
                         isDownloading={isDownloading} setIsDownloading={setIsDownloading} setError={setError}
                       />
