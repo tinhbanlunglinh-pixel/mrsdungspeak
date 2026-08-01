@@ -478,20 +478,28 @@ export function speakWithBrowser(text: string, level: EnglishLevel, customRate?:
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = 'en-US';
 
-  // Use customRate if provided, otherwise default to natural normal speed (1.0)
+  // Use customRate if provided, otherwise default to moderate clear pace (0.9)
   if (customRate) {
     utterance.rate = customRate;
   } else {
-    utterance.rate = 1.0; // Normal native speaking pace for all levels
+    utterance.rate = 0.9; // Slightly slower than default for clear, natural pronunciation
   }
 
-  utterance.pitch = 1.0;
+  utterance.pitch = 1.0; // Natural pitch
   utterance.volume = 1.0;
 
-  // Try to find a good English voice
+  // Try to find the best American English voice (prioritize natural-sounding voices)
   const voices = window.speechSynthesis.getVoices();
-  const englishVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) 
-    || voices.find(v => v.lang === 'en-US') 
+  const englishVoice = 
+    // Priority 1: Google US English (most natural)
+    voices.find(v => v.lang === 'en-US' && v.name.includes('Google US English'))
+    // Priority 2: Any Google English voice
+    || voices.find(v => v.lang === 'en-US' && v.name.includes('Google'))
+    // Priority 3: Microsoft natural voices (Edge/Windows)
+    || voices.find(v => v.lang === 'en-US' && (v.name.includes('Natural') || v.name.includes('Jenny') || v.name.includes('Aria')))
+    // Priority 4: Any en-US voice
+    || voices.find(v => v.lang === 'en-US')
+    // Priority 5: Any English voice
     || voices.find(v => v.lang.startsWith('en-'));
   
   if (englishVoice) {
@@ -557,8 +565,8 @@ function pcmChunksToWav(base64Chunks: string[], sampleRate: number = 24000): str
 async function geminiTTS(text: string, level: EnglishLevel, voice: string = "Kore"): Promise<string> {
   const cleanedText = text.replace(/\s+/g, ' ').trim();
   
-  // Build the prompt requesting natural native English intonation at normal pace
-  const prompt = `Read the following text aloud in a natural, native English speaking voice with proper intonation, rhythm, stress patterns, and natural pauses. Speak at a normal conversational pace — not too slow, not too fast. Make it sound like a fluent native speaker reading naturally: ${cleanedText}`;
+  // Build the prompt requesting clear, natural American English at moderate pace
+  const prompt = `Read the following English text aloud clearly and naturally as a native American English speaker. Use a moderate, steady pace — not too fast, not too slow — so that each word is clearly pronounced. Apply natural American English intonation, stress patterns, and rhythm. Pause naturally at commas and periods. Pronounce every word distinctly and accurately. The tone should be warm, friendly, and easy to follow for English learners:\n\n${cleanedText}`;
 
   // Use ONLY TTS-specific models (gemini-2.0-flash etc. do NOT support audio output with speechConfig)
   for (let i = 0; i < TTS_MODELS.length; i++) {

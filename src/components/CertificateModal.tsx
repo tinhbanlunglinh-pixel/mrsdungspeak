@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { X, Download, RefreshCw, Trophy, Award, Star } from 'lucide-react';
+import { X, Download, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
 import { EvaluationResult, EnglishLevel } from '../types';
@@ -22,18 +22,24 @@ interface CertificateModalProps {
 
 /* ── Colour tokens ─────────────────────────────────────── */
 const C = {
-  gold:       '#B8860B',
-  goldLight:  '#DAA520',
-  goldPale:   '#F5E6B8',
-  goldBorder: '#C4973B',
-  ivory:      '#FFFDF5',
-  ivoryDark:  '#FFF8E7',
-  emerald:    '#065F46',
-  emeraldMid: '#059669',
-  emeraldPale:'#D1FAE5',
-  dark:       '#1F2937',
+  green:      '#00a84d',
+  greenDark:  '#166534',
+  greenLight: '#e6f9ef',
+  white:      '#ffffff',
+  dark:       '#1a1a1a',
   muted:      '#6B7280',
-  white:      '#FFFFFF',
+  ivory:      '#FFFDF5',
+  yellow:     '#FFF3CD',
+  yellowDark: '#B8860B',
+};
+
+/* ── Score rating helper ─────────────────────────────────── */
+const getScoreRating = (score: number): { label: string; emoji: string; bgColor: string; textColor: string } => {
+  if (score >= 9) return { label: 'XUẤT SẮC', emoji: '🏆', bgColor: '#FEF3C7', textColor: '#B45309' };
+  if (score >= 7) return { label: 'GIỎI', emoji: '⭐', bgColor: '#FEF3C7', textColor: '#B45309' };
+  if (score >= 5) return { label: 'KHÁ', emoji: '👍', bgColor: '#FEF3C7', textColor: '#B45309' };
+  if (score >= 3) return { label: 'TRUNG BÌNH', emoji: '📝', bgColor: '#FEF3C7', textColor: '#B45309' };
+  return { label: 'CẦN NỖ LỰC', emoji: '💪', bgColor: '#FEF3C7', textColor: '#B45309' };
 };
 
 export const CertificateModal: React.FC<CertificateModalProps> = ({
@@ -58,7 +64,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
       const canvas = await html2canvas(certificateRef.current, {
         useCORS: true, allowTaint: true,
         scale: window.devicePixelRatio ? Math.max(3, window.devicePixelRatio * 2) : 3,
-        backgroundColor: C.ivory, logging: false, imageTimeout: 15000,
+        backgroundColor: C.white, logging: false, imageTimeout: 15000,
         onclone: (clonedDoc) => {
           const container = clonedDoc.querySelector('[data-certificate-container]') as HTMLElement;
           if (container) { container.style.boxShadow = 'none'; container.style.transform = 'none'; }
@@ -83,6 +89,16 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
   const displayName = studentName || 'Amazing Student';
   const displayTopic = generatedTopicName || topic || 'General English';
   const displayDate = new Date().toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const criteriaScores = evaluation?.criteriaScores;
+  const scoreRating = getScoreRating(evaluation?.score ?? 0);
+
+  const criteriaList = [
+    { key: 'pronunciation', label: 'Phát âm' },
+    { key: 'fluency', label: 'Trôi chảy' },
+    { key: 'vocabulary', label: 'Từ vựng' },
+    { key: 'grammar', label: 'Ngữ pháp' },
+    { key: 'interaction', label: 'Tương tác' },
+  ];
 
   return (
     <AnimatePresence>
@@ -98,7 +114,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             exit={{ scale: 0.85, opacity: 0, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
             className="bg-white rounded-3xl shadow-2xl max-w-[720px] w-full overflow-hidden relative"
-            style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.4), 0 0 0 1px rgba(184,134,11,0.2)' }}
+            style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.4)' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -119,82 +135,14 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                   position: 'relative',
                   width: '100%',
                   aspectRatio: '1.414 / 1',
-                  backgroundColor: C.ivory,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
+                  backgroundColor: C.white,
+                  fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                   overflow: 'hidden',
+                  border: `5px solid ${C.green}`,
+                  borderRadius: '6px',
+                  boxSizing: 'border-box',
                 }}
               >
-                {/* ── Layer 1: Subtle background pattern ── */}
-                <div style={{
-                  position: 'absolute', inset: 0, opacity: 0.035, zIndex: 0,
-                  backgroundImage: `
-                    radial-gradient(circle at 50% 50%, ${C.goldLight} 0.5px, transparent 0.5px),
-                    radial-gradient(circle at 0% 0%, ${C.goldLight} 0.3px, transparent 0.3px)
-                  `,
-                  backgroundSize: '24px 24px, 12px 12px',
-                }} />
-
-                {/* ── Layer 2: Outer gold border ── */}
-                <div style={{
-                  position: 'absolute', inset: '6px',
-                  border: `4px solid ${C.goldBorder}`,
-                  zIndex: 1,
-                }} />
-
-                {/* ── Layer 3: Inner ornate border ── */}
-                <div style={{
-                  position: 'absolute', inset: '14px',
-                  border: `2px solid ${C.goldPale}`,
-                  zIndex: 1,
-                }} />
-
-                {/* ── Layer 4: Decorative double-line border ── */}
-                <div style={{
-                  position: 'absolute', inset: '20px',
-                  border: `1px solid ${C.goldBorder}`,
-                  zIndex: 1,
-                }} />
-
-                {/* ── Corner Ornaments (4 corners) ── */}
-                {[
-                  { top: '8px', left: '8px', borderTop: `6px solid ${C.gold}`, borderLeft: `6px solid ${C.gold}`, borderRadius: '4px 0 0 0' },
-                  { top: '8px', right: '8px', borderTop: `6px solid ${C.gold}`, borderRight: `6px solid ${C.gold}`, borderRadius: '0 4px 0 0' },
-                  { bottom: '8px', left: '8px', borderBottom: `6px solid ${C.gold}`, borderLeft: `6px solid ${C.gold}`, borderRadius: '0 0 0 4px' },
-                  { bottom: '8px', right: '8px', borderBottom: `6px solid ${C.gold}`, borderRight: `6px solid ${C.gold}`, borderRadius: '0 0 4px 0' },
-                ].map((style, i) => (
-                  <div key={i} style={{ position: 'absolute', width: '40px', height: '40px', zIndex: 2, ...style } as React.CSSProperties} />
-                ))}
-
-                {/* ── Corner Diamond Accents ── */}
-                {[
-                  { top: '26px', left: '26px' },
-                  { top: '26px', right: '26px' },
-                  { bottom: '26px', left: '26px' },
-                  { bottom: '26px', right: '26px' },
-                ].map((pos, i) => (
-                  <div key={`d${i}`} style={{
-                    position: 'absolute', ...pos, width: '8px', height: '8px',
-                    backgroundColor: C.gold, transform: 'rotate(45deg)', zIndex: 2,
-                  } as React.CSSProperties} />
-                ))}
-
-                {/* ── Layer 5: Watermark seal (background) ── */}
-                <div style={{
-                  position: 'absolute', top: '50%', left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '280px', height: '280px',
-                  borderRadius: '50%',
-                  border: `3px solid ${C.goldPale}`,
-                  opacity: 0.08, zIndex: 0,
-                }} />
-                <div style={{
-                  position: 'absolute', top: '50%', left: '50%',
-                  transform: 'translate(-50%, -50%)',
-                  width: '260px', height: '260px',
-                  borderRadius: '50%',
-                  border: `1px dashed ${C.goldPale}`,
-                  opacity: 0.08, zIndex: 0,
-                }} />
 
                 {/* ═══════════ CONTENT ═══════════ */}
                 <div style={{
@@ -202,225 +150,222 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                   width: '100%', height: '100%',
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'space-between',
-                  padding: '32px 40px 24px',
+                  padding: '24px 36px 18px',
                   boxSizing: 'border-box',
                   textAlign: 'center',
                 }}>
 
-                  {/* ── TOP: Emblem + Title ── */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', width: '100%' }}>
-                    {/* Trophy Emblem */}
+                  {/* ── TOP: Icon + School Name + Title ── */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', width: '100%' }}>
+                    {/* School Icon */}
                     <div style={{
-                      width: '64px', height: '64px', borderRadius: '50%',
-                      background: `linear-gradient(145deg, ${C.gold}, ${C.goldLight})`,
+                      width: '52px', height: '52px', borderRadius: '14px',
+                      backgroundColor: C.green,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: `0 6px 20px rgba(184,134,11,0.35), inset 0 2px 4px rgba(255,255,255,0.4)`,
-                      border: `3px solid ${C.goldPale}`,
+                      boxShadow: '0 4px 12px rgba(0,168,77,0.3)',
                     }}>
-                      <Trophy size={30} color={C.white} strokeWidth={2.5} />
+                      <span style={{ fontSize: '26px', lineHeight: 1 }}>🏠</span>
                     </div>
 
-                    {/* Decorative line */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '60%', maxWidth: '320px' }}>
-                      <div style={{ flex: 1, height: '1px', background: `linear-gradient(to right, transparent, ${C.goldBorder})` }} />
-                      <Star size={10} color={C.gold} fill={C.gold} />
-                      <div style={{ flex: 1, height: '1px', background: `linear-gradient(to left, transparent, ${C.goldBorder})` }} />
-                    </div>
+                    {/* School Name */}
+                    <p style={{
+                      fontSize: '11px', fontWeight: 800, color: C.green,
+                      letterSpacing: '0.2em', textTransform: 'uppercase',
+                      margin: '6px 0 0', lineHeight: 1.3,
+                    }}>
+                      Trung tâm Ngoại Ngữ English Mrs. Dung
+                    </p>
 
-                    {/* Title */}
+                    {/* Main Title */}
                     <h1 style={{
-                      fontSize: '22px', fontWeight: 900,
-                      color: C.gold, letterSpacing: '0.25em',
-                      textTransform: 'uppercase', margin: 0, lineHeight: 1.2,
-                      textShadow: `1px 1px 0 ${C.goldPale}`,
-                      fontFamily: "'Georgia', 'Times New Roman', serif",
+                      fontSize: '28px', fontWeight: 900,
+                      color: C.greenDark,
+                      margin: '0', lineHeight: 1.15,
+                      fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                     }}>
-                      Certificate of Excellence
+                      GIẤY CHỨNG NHẬN
                     </h1>
 
                     {/* Subtitle */}
                     <p style={{
-                      fontSize: '12px', color: C.emeraldMid,
-                      fontStyle: 'italic', fontWeight: 500, margin: 0,
-                      letterSpacing: '0.05em',
+                      fontSize: '12px', color: C.dark,
+                      fontStyle: 'italic', fontWeight: 600, margin: 0,
                     }}>
-                      This award is proudly presented to
+                      Hoàn thành xuất sắc bài học
                     </p>
                   </div>
 
-                  {/* ── MIDDLE: Student Name + Details ── */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '100%' }}>
+                  {/* ── MIDDLE: Student Name + Topic ── */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', width: '100%' }}>
+                    {/* "Vinh danh học viên:" */}
+                    <p style={{
+                      fontSize: '12px', fontStyle: 'italic', color: C.muted,
+                      margin: 0, fontWeight: 500,
+                    }}>
+                      Vinh danh học viên:
+                    </p>
+
                     {/* Student Name */}
-                    <div style={{ width: '100%', maxWidth: '480px' }}>
+                    <div style={{ width: '100%', maxWidth: '400px' }}>
                       <h2 style={{
-                        fontSize: '38px', fontWeight: 900,
-                        color: C.emerald, margin: 0, padding: '0 0 8px',
-                        fontFamily: "'Georgia', 'Times New Roman', serif",
-                        fontStyle: 'italic', lineHeight: 1.15,
-                        borderBottom: `3px solid ${C.goldLight}`,
-                        minHeight: '50px',
+                        fontSize: '36px', fontWeight: 900,
+                        color: C.dark, margin: 0, padding: '0 0 6px',
+                        fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
+                        lineHeight: 1.15,
                         wordBreak: 'break-word',
                       }}>
                         {displayName}
                       </h2>
-                      {/* Decorative dots under name */}
+                      {/* Green underline */}
                       <div style={{
-                        display: 'flex', justifyContent: 'center', gap: '6px',
-                        marginTop: '6px',
-                      }}>
-                        {[...Array(5)].map((_, i) => (
-                          <div key={i} style={{
-                            width: i === 2 ? '6px' : '4px',
-                            height: i === 2 ? '6px' : '4px',
-                            borderRadius: '50%',
-                            backgroundColor: i === 2 ? C.gold : C.goldPale,
-                          }} />
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Description */}
-                    <p style={{
-                      fontSize: '13px', fontWeight: 600, color: C.dark,
-                      margin: 0, lineHeight: 1.4,
-                    }}>
-                      For outstanding performance in <span style={{ color: C.emeraldMid, fontWeight: 700 }}>English Speaking</span>
-                    </p>
-
-                    {/* Topic + Level Row */}
-                    <div style={{
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      gap: '12px', flexWrap: 'wrap',
-                    }}>
-                      <div style={{
-                        padding: '5px 16px', borderRadius: '20px',
-                        backgroundColor: C.ivoryDark,
-                        border: `1.5px solid ${C.goldPale}`,
-                        fontSize: '11px', fontWeight: 700, color: C.dark,
-                        letterSpacing: '0.02em',
-                      }}>
-                        📚 {displayTopic}
-                      </div>
-                      <div style={{
-                        padding: '5px 16px', borderRadius: '20px',
-                        background: `linear-gradient(135deg, ${C.emerald}, ${C.emeraldMid})`,
-                        fontSize: '11px', fontWeight: 800, color: C.white,
-                        letterSpacing: '0.08em', textTransform: 'uppercase',
-                      }}>
-                        {studentClass ? `Class ${studentClass}` : level}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* ── SCORE SEAL ── */}
-                  <div style={{
-                    position: 'relative',
-                    width: '110px', height: '110px',
-                  }}>
-                    {/* Outer ring */}
-                    <div style={{
-                      position: 'absolute', inset: 0,
-                      borderRadius: '50%',
-                      background: `conic-gradient(from 0deg, ${C.gold}, ${C.goldLight}, ${C.gold}, ${C.goldLight}, ${C.gold})`,
-                      padding: '4px',
-                    }}>
-                      <div style={{
-                        width: '100%', height: '100%',
-                        borderRadius: '50%',
-                        backgroundColor: C.ivory,
-                        display: 'flex', flexDirection: 'column',
-                        alignItems: 'center', justifyContent: 'center',
-                        border: `2px solid ${C.goldPale}`,
-                      }}>
-                        <span style={{
-                          fontSize: '9px', fontWeight: 800,
-                          color: C.goldBorder, textTransform: 'uppercase',
-                          letterSpacing: '0.2em', lineHeight: 1, marginBottom: '2px',
-                        }}>
-                          Score
-                        </span>
-                        <span style={{
-                          fontSize: '32px', fontWeight: 900,
-                          color: C.emerald, lineHeight: 1,
-                          fontFamily: "'Georgia', serif",
-                        }}>
-                          {displayScore}
-                        </span>
-                        <span style={{
-                          fontSize: '11px', fontWeight: 700,
-                          color: C.goldBorder, lineHeight: 1, marginTop: '1px',
-                        }}>
-                          / 10
-                        </span>
-                      </div>
-                    </div>
-                    {/* Star accents around seal */}
-                    {[0, 72, 144, 216, 288].map((deg) => (
-                      <div key={deg} style={{
-                        position: 'absolute',
-                        top: '50%', left: '50%',
-                        transform: `rotate(${deg}deg) translateY(-62px) rotate(-${deg}deg)`,
-                        width: '8px', height: '8px',
-                      }}>
-                        <Star size={8} color={C.gold} fill={C.gold} />
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* ── BOTTOM: Signatures ── */}
-                  <div style={{
-                    width: '100%', display: 'flex',
-                    justifyContent: 'space-between', alignItems: 'flex-end',
-                    padding: '0 16px',
-                  }}>
-                    {/* Left: Date */}
-                    <div style={{ textAlign: 'center', minWidth: '140px' }}>
-                      <p style={{
-                        fontSize: '13px', fontWeight: 700, color: C.dark,
-                        margin: '0 0 6px', fontFamily: "'Georgia', serif",
-                      }}>
-                        {displayDate}
-                      </p>
-                      <div style={{
-                        width: '100%', height: '2px',
-                        background: `linear-gradient(to right, transparent, ${C.goldBorder}, transparent)`,
-                        marginBottom: '4px',
+                        width: '60%', height: '4px', borderRadius: '2px',
+                        backgroundColor: C.green,
+                        margin: '0 auto',
                       }} />
-                      <p style={{
-                        fontSize: '9px', fontWeight: 800, color: C.goldBorder,
-                        textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0,
-                      }}>
-                        Date of Issue
-                      </p>
                     </div>
 
-                    {/* Center: Award icon */}
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', opacity: 0.4 }}>
-                      <Award size={24} color={C.gold} />
-                      <span style={{ fontSize: '7px', fontWeight: 700, color: C.goldBorder, letterSpacing: '0.15em', textTransform: 'uppercase' }}>
-                        Mrs. Dung AI
+                    {/* Topic */}
+                    <div style={{ marginTop: '2px' }}>
+                      <p style={{
+                        fontSize: '10px', fontWeight: 700, color: C.muted,
+                        textTransform: 'uppercase', letterSpacing: '0.15em',
+                        margin: '0 0 2px',
+                      }}>
+                        Chủ đề học tập
+                      </p>
+                      <p style={{
+                        fontSize: '18px', fontWeight: 900, color: C.dark,
+                        margin: 0, fontStyle: 'italic',
+                        fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
+                      }}>
+                        "{displayTopic}"
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* ── SCORE SECTION ── */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    gap: '20px', width: '100%',
+                  }}>
+                    {/* Score Circle */}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                      <div style={{
+                        width: '88px', height: '88px', borderRadius: '50%',
+                        backgroundColor: C.green,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        boxShadow: '0 6px 20px rgba(0,168,77,0.35)',
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline' }}>
+                          <span style={{
+                            fontSize: '30px', fontWeight: 900, color: C.white,
+                            fontFamily: "'Roboto', 'Segoe UI', sans-serif", lineHeight: 1,
+                          }}>
+                            {displayScore}
+                          </span>
+                          <span style={{
+                            fontSize: '12px', fontWeight: 700, color: 'rgba(255,255,255,0.8)',
+                            lineHeight: 1,
+                          }}>
+                            /10
+                          </span>
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: '9px', fontWeight: 800, color: C.greenDark,
+                        textTransform: 'uppercase', letterSpacing: '0.12em',
+                      }}>
+                        Điểm số
                       </span>
                     </div>
 
-                    {/* Right: Teacher Signature */}
-                    <div style={{ textAlign: 'center', minWidth: '140px' }}>
+                    {/* Rating Badge */}
+                    <div style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center',
+                      gap: '4px', padding: '12px 20px',
+                      backgroundColor: scoreRating.bgColor,
+                      borderRadius: '14px',
+                      border: '2px solid rgba(180,134,11,0.15)',
+                      minWidth: '130px',
+                    }}>
+                      <span style={{ fontSize: '28px', lineHeight: 1 }}>{scoreRating.emoji}</span>
+                      <span style={{
+                        fontSize: '14px', fontWeight: 900, color: scoreRating.textColor,
+                        textTransform: 'uppercase', letterSpacing: '0.05em',
+                      }}>
+                        {scoreRating.label}
+                      </span>
+                      {/* Criteria mini summary */}
+                      {criteriaScores && (
+                        <div style={{
+                          display: 'flex', gap: '6px', marginTop: '2px',
+                          flexWrap: 'wrap', justifyContent: 'center',
+                        }}>
+                          {criteriaList.map(({ key, label }) => {
+                            const score = (criteriaScores as any)?.[key] ?? 0;
+                            return (
+                              <span key={key} style={{
+                                fontSize: '7px', fontWeight: 700,
+                                color: scoreRating.textColor,
+                                opacity: 0.8,
+                              }}>
+                                {label}: {score.toFixed(1)}/2
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── BOTTOM: Date + Brand | Teacher Signature ── */}
+                  <div style={{
+                    width: '100%', display: 'flex',
+                    justifyContent: 'space-between', alignItems: 'flex-end',
+                    padding: '0 8px',
+                  }}>
+                    {/* Left: Date + Brand */}
+                    <div style={{ textAlign: 'left' }}>
                       <p style={{
-                        fontSize: '16px', fontWeight: 800, color: C.emerald,
-                        margin: '0 0 6px',
-                        fontFamily: "'Georgia', serif", fontStyle: 'italic',
+                        fontSize: '11px', fontStyle: 'italic', color: C.muted,
+                        margin: '0 0 4px',
+                      }}>
+                        Ngày cấp: {displayDate}
+                      </p>
+                      <p style={{
+                        fontSize: '12px', fontWeight: 800, color: C.green,
+                        margin: 0,
+                      }}>
+                        English with Heart 💚
+                      </p>
+                    </div>
+
+                    {/* Right: Teacher Signature */}
+                    <div style={{ textAlign: 'center', minWidth: '160px' }}>
+                      {/* Signature line */}
+                      <div style={{
+                        width: '100%', height: '3px', borderRadius: '2px',
+                        backgroundColor: C.green,
+                        marginBottom: '8px',
+                      }} />
+                      <p style={{
+                        fontSize: '18px', fontWeight: 900, color: C.dark,
+                        margin: '0 0 2px',
+                        fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                       }}>
                         {teacherName}
                       </p>
-                      <div style={{
-                        width: '100%', height: '2px',
-                        background: `linear-gradient(to right, transparent, ${C.goldBorder}, transparent)`,
-                        marginBottom: '4px',
-                      }} />
                       <p style={{
-                        fontSize: '9px', fontWeight: 800, color: C.goldBorder,
-                        textTransform: 'uppercase', letterSpacing: '0.15em', margin: 0,
+                        fontSize: '10px', fontWeight: 700, color: C.green,
+                        fontStyle: 'italic', margin: '0 0 1px',
                       }}>
-                        Head Teacher
+                        Giám đốc Trung tâm
+                      </p>
+                      <p style={{
+                        fontSize: '8px', fontWeight: 600, color: C.muted,
+                        margin: 0,
+                      }}>
+                        Trung tâm Ngoại Ngữ English Mrs. Dung
                       </p>
                     </div>
                   </div>
@@ -429,7 +374,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             </div>
 
             {/* ─── Action Bar ─── */}
-            <div className="p-3 sm:p-5 bg-gradient-to-r from-amber-50 to-emerald-50 border-t border-amber-100/60 flex gap-3">
+            <div className="p-3 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100/60 flex gap-3">
               <button
                 onClick={onClose}
                 className="flex-1 py-3 bg-white border border-gray-200 text-gray-500 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all active:scale-[0.98]"
@@ -441,8 +386,8 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
                 disabled={isDownloading}
                 className="flex-[2.5] py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 text-white"
                 style={{
-                  background: `linear-gradient(135deg, ${C.gold}, ${C.goldLight}, ${C.gold})`,
-                  boxShadow: `0 8px 24px -4px rgba(184,134,11,0.4)`,
+                  background: `linear-gradient(135deg, ${C.green}, #059669)`,
+                  boxShadow: `0 8px 24px -4px rgba(0,168,77,0.4)`,
                 }}
               >
                 {isDownloading ? <RefreshCw size={18} className="animate-spin" /> : <Download size={18} />}
