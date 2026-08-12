@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { X, Download, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import html2canvas from 'html2canvas';
@@ -42,11 +42,40 @@ const getScoreRating = (score: number): { label: string; emoji: string; bgColor:
   return { label: 'CẦN NỖ LỰC', emoji: '💪', bgColor: '#FEF3C7', textColor: '#B45309' };
 };
 
+/* ── Fixed certificate dimensions for consistent rendering ── */
+const CERT_WIDTH = 680;
+const CERT_HEIGHT = Math.round(CERT_WIDTH / 1.414); // ~481px (landscape A4 ratio)
+
 export const CertificateModal: React.FC<CertificateModalProps> = ({
   show, onClose, evaluation, studentName, studentClass, teacherName,
   generatedTopicName, topic, level, isDownloading, setIsDownloading, setError
 }) => {
   const certificateRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  /* ── Auto-scale certificate to fit the wrapper container ── */
+  const recalcScale = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const wrapperW = wrapper.clientWidth;
+    const wrapperH = wrapper.clientHeight;
+    // Fit the fixed-size certificate inside the wrapper with some padding
+    const scaleX = wrapperW / CERT_WIDTH;
+    const scaleY = wrapperH / CERT_HEIGHT;
+    setScale(Math.min(scaleX, scaleY, 1)); // never scale up beyond 1
+  }, []);
+
+  useEffect(() => {
+    if (!show) return;
+    // Initial calc after paint
+    const raf = requestAnimationFrame(() => recalcScale());
+    window.addEventListener('resize', recalcScale);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', recalcScale);
+    };
+  }, [show, recalcScale]);
 
   const downloadCertificate = async () => {
     if (!certificateRef.current || isDownloading) return;
@@ -67,7 +96,10 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
         backgroundColor: C.white, logging: false, imageTimeout: 15000,
         onclone: (clonedDoc) => {
           const container = clonedDoc.querySelector('[data-certificate-container]') as HTMLElement;
-          if (container) { container.style.boxShadow = 'none'; container.style.transform = 'none'; }
+          if (container) {
+            container.style.boxShadow = 'none';
+            container.style.transform = 'none';
+          }
         },
         ignoreElements: (element) => element.hasAttribute('data-html2canvas-ignore'),
       });
@@ -113,8 +145,12 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.85, opacity: 0, y: 30 }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="bg-white rounded-3xl shadow-2xl max-w-[720px] w-full overflow-hidden relative"
-            style={{ boxShadow: '0 40px 80px -20px rgba(0,0,0,0.4)' }}
+            className="bg-white rounded-3xl shadow-2xl w-full overflow-hidden relative flex flex-col"
+            style={{
+              boxShadow: '0 40px 80px -20px rgba(0,0,0,0.4)',
+              maxWidth: '720px',
+              maxHeight: 'min(calc(100vh - 16px), calc(100dvh - 16px))',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button */}
@@ -126,21 +162,29 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
               <X size={18} />
             </button>
 
-            {/* ─── Certificate Body ─── */}
-            <div className="p-3 sm:p-6 overflow-auto max-h-[85vh]">
+            {/* ─── Certificate Viewport ─── 
+                 This wrapper takes all remaining space; the certificate 
+                 is rendered at a fixed size and CSS-scaled to fit.       */}
+            <div
+              ref={wrapperRef}
+              className="flex-1 min-h-0 flex items-center justify-center p-3 sm:p-5"
+            >
               <div
                 ref={certificateRef}
                 data-certificate-container
                 style={{
                   position: 'relative',
-                  width: '100%',
-                  aspectRatio: '1.414 / 1',
+                  width: `${CERT_WIDTH}px`,
+                  height: `${CERT_HEIGHT}px`,
+                  flexShrink: 0,
                   backgroundColor: C.white,
                   fontFamily: "'Roboto', 'Segoe UI', 'Arial', sans-serif",
                   overflow: 'hidden',
                   border: `5px solid ${C.green}`,
                   borderRadius: '6px',
                   boxSizing: 'border-box',
+                  transform: `scale(${scale})`,
+                  transformOrigin: 'center center',
                 }}
               >
 
@@ -374,7 +418,7 @@ export const CertificateModal: React.FC<CertificateModalProps> = ({
             </div>
 
             {/* ─── Action Bar ─── */}
-            <div className="p-3 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100/60 flex gap-3">
+            <div className="p-3 sm:p-5 bg-gradient-to-r from-green-50 to-emerald-50 border-t border-green-100/60 flex gap-3 flex-shrink-0">
               <button
                 onClick={onClose}
                 className="flex-1 py-3 bg-white border border-gray-200 text-gray-500 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all active:scale-[0.98]"

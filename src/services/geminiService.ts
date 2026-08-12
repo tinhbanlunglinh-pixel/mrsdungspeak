@@ -234,6 +234,7 @@ export const generateContent = async (
    - Each word MUST actually appear in the reading passage.
    - Pick the most EDUCATIONAL and USEFUL words for the student's level.
    - NEVER generate filler words, nonsense words, or slang variations of the same root word.
+   - CRITICAL: DO NOT output any internal tokens, UUIDs, or strings containing "ai-generated-word" or "nyx". Output ONLY valid, clean text.
   
   CRITICAL WORD COUNT LIMITS FOR READING PASSAGE (ONLY for 'generate' mode, IGNORE for 'useInput' mode):
   You MUST strictly adhere to the following word count limits based on the selected level:
@@ -315,6 +316,9 @@ export const generateContent = async (
       .replace(/^```\s*/, '')
       .replace(/\s*```$/i, '')
       .trim();
+    
+    // Fix Gemini internal token leaks (e.g., dognyx-ai-generated-word-...)
+    cleanText = cleanText.replace(/(?:nyx|y|)-?ai-generated-word-[a-f0-9\-]+(?:-[0-9.\-]+)+-?/gi, '');
     
     // Attempt to parse JSON, with repair for truncated responses
     let result: any;
@@ -495,8 +499,10 @@ export function speakWithBrowser(text: string, level: EnglishLevel, customRate?:
     voices.find(v => v.lang === 'en-US' && v.name.includes('Google US English'))
     // Priority 2: Any Google English voice
     || voices.find(v => v.lang === 'en-US' && v.name.includes('Google'))
-    // Priority 3: Microsoft natural voices (Edge/Windows)
-    || voices.find(v => v.lang === 'en-US' && (v.name.includes('Natural') || v.name.includes('Jenny') || v.name.includes('Aria')))
+    // Priority 3: Microsoft natural male voices (Edge/Windows)
+    || voices.find(v => v.lang === 'en-US' && v.name.includes('Natural') && (v.name.includes('Guy') || v.name.includes('Christopher') || v.name.includes('Davis') || v.name.includes('Eric')))
+    // Priority 3.5: Any other natural voice
+    || voices.find(v => v.lang === 'en-US' && v.name.includes('Natural'))
     // Priority 4: Any en-US voice
     || voices.find(v => v.lang === 'en-US')
     // Priority 5: Any English voice

@@ -35,7 +35,7 @@ export default function App() {
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [contentMode, setContentMode] = useState<ContentMode>("generate");
-  const [voice, setVoice] = useState<TTSVoice>("Kore");
+  const [voice, setVoice] = useState<TTSVoice>("Charon");
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
